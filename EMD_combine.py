@@ -74,72 +74,108 @@ x = x_min + dx * np.arange(n_x)
 p = p_min + dp * np.arange(n_p)
 #print("\nArray of all x points:\n",x)
 
-def Psi(x):
+def Psi_src(x):
     Psi_0 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar)))
     Psi_1 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar))*(np.sqrt(2*m*w/h_bar))*x)
     result=np.sqrt(3/5)*Psi_0 + np.sqrt(2/5)*Psi_1
     return result
+Psi_star_src=Psi_src
+
+def Psi_dest(x):
+    Psi_0 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar)))
+    Psi_1 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar))*(np.sqrt(2*m*w/h_bar))*x)
+    result=np.sqrt(3.1/5)*Psi_0 + np.sqrt(1.9/5)*Psi_1
+    return result
+Psi_star_dest=Psi_dest
 
 # can do faster integration
-def Wigner(Psi_func):
-        result=np.zeros((n_x,n_p))
-        for i in range(n_x):
-            for j in range(n_p):
-                integrand=lambda y: np.real(Psi_star(x[i]+y)*(Psi(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
-                integral_value, _ = quad(integrand,-np.inf,np.inf)
-                result[i,j]=integral_value/(np.pi*h_bar)
-        return result
+def Wigner_src(Psi_func):
+    result=np.zeros((n_x,n_p))
+    for i in range(n_x):
+        for j in range(n_p):
+            integrand=lambda y: np.real(Psi_star_src(x[i]+y)*(Psi_src(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
+            integral_value, _ = quad(integrand,-np.inf,np.inf)
+            result[i,j]=integral_value/(np.pi*h_bar)
+    return result
+def Wigner_dest(Psi_func):
+    result=np.zeros((n_x,n_p))
+    for i in range(n_x):
+        for j in range(n_p):
+            integrand=lambda y: np.real(Psi_star_dest(x[i]+y)*(Psi_dest(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
+            integral_value, _ = quad(integrand,-np.inf,np.inf)
+            result[i,j]=integral_value/(np.pi*h_bar)
+    return result
+W_src=Wigner_src(Psi_src)
+W_dest = Wigner_dest(Psi_dest)
+
+
+U = 0.5*m*w*w*x**2
+X, P = np.meshgrid(x, p,indexing='ij')  # full 2D grid versions of x and p  #Grid for X,P
+
 
 def f(W_array):
+    result=np.zeros((n_x,n_p))
+
+    def xW_dev(W_array):
         result=np.zeros((n_x,n_p))
-
-        def xW_dev(W_array):
-            result=np.zeros((n_x,n_p))
-            for i in range(2,n_x-2):
-                for j in range(2,n_p-2):
-                    # Using 4th-order central differences
-                    result[i, j] = (-W_array[i + 2, j] + 8 * W_array[i + 1, j]- 8 * W_array[i - 1, j] + W_array[i - 2, j]) / (12 * dx)
-            return result
-        xW_p=xW_dev(W_array)
-
-        def pW_dev(W_array):
-            result=np.zeros((n_x,n_p))
-            for i in range(2,n_x-2):
-                for j in range(2,n_p-2):
-                    # Using 4th-order central differences
-                    result[i, j] = (-W_array[i, j + 2] + 8 * W_array[i, j + 1]- 8 * W_array[i, j - 1] + W_array[i, j - 2]) / (12 * dp)
-            return result
-        
-        pW_p=pW_dev(W_array)
-
-        result[2:-2,2:-2] = ((-1/m)*(P[2:-2,2:-2])*(xW_p[2:-2,2:-2])) + (m*(w**2)*(X[2:-2,2:-2])*(pW_p[2:-2,2:-2]))
+        for i in range(2,n_x-2):
+            for j in range(2,n_p-2):
+                # Using 4th-order central differences
+                result[i, j] = (-W_array[i + 2, j] + 8 * W_array[i + 1, j]- 8 * W_array[i - 1, j] + W_array[i - 2, j]) / (12 * dx)
         return result
+    xW_p=xW_dev(W_array)
+
+    def pW_dev(W_array):
+        result=np.zeros((n_x,n_p))
+        for i in range(2,n_x-2):
+            for j in range(2,n_p-2):
+                # Using 4th-order central differences
+                result[i, j] = (-W_array[i, j + 2] + 8 * W_array[i, j + 1]- 8 * W_array[i, j - 1] + W_array[i, j - 2]) / (12 * dp)
+        return result
+    pW_p=pW_dev(W_array)
+
+    result[2:-2,2:-2] = ((-1/m)*(P[2:-2,2:-2])*(xW_p[2:-2,2:-2])) + (m*(w**2)*(X[2:-2,2:-2])*(pW_p[2:-2,2:-2]))
+    return result
+
+def timeEvol(W):
+    for step in range(n_t):
+
+        k1=f(W)
+        W1=W+k1*dt/2
+        k2=f(W1)
+        W2=W+k2*dt/2
+        k3=f(W2)
+        W3=W+k3*dt
+        k4=f(W3)
+        W=W+(dt/6)*(k1+2*k2+2*k3+k4)
+        W[0:2, :] = W[-2:, :] = W[:, 0:2] = W[:, -2:] = 0  # Zero the boundary
+    return W
 
 start_time = time.time()
 if __name__ == "__main__":
-    Psi_star=Psi
-    W=Wigner(Psi)
+    np.savetxt("Wigner_init_src.txt", W_src, delimiter=" ")
+    np.savetxt("Wigner_init_dest.txt", W_dest, delimiter=" ")
 
-    U = 0.5*m*w*w*x**2
-    X, P = np.meshgrid(x, p,indexing='ij')
+    N = 51
+    spacing = np.linspace(-5,5,N)
+    x, y = np.meshgrid(spacing, spacing)
     
-    np.savetxt("Wigner_init.txt", W, delimiter=" ")
-    # have source and dest here
-    N = 49
-    spacing = np.linspace(-5,5,N) # space the grids with width determined by N
-    x, y = np.meshgrid(spacing, spacing) # create 2D arrays x and y with spacing
-    source = np.exp(-((.8-x)**2+(.8-y)**2)/2) / (2*np.pi) ** .5 # source with x and y
-    dest = np.exp(-((.6-x)**2+(.6-y)**2)/2) / (2*np.pi) ** .5 # dest with x and y
-    np.savetxt("source.txt", source, delimiter=" ")
-    np.savetxt("dest.txt", dest, delimiter=" ")
-    source = np.loadtxt("source.txt")
-    dest = np.loadtxt("dest.txt")
-    dx = spacing[1]-spacing[0] # spacing dx
-    tau = 3 # common safe default for 2D/ 3D problems
-    mu = 1./(16*tau*(N-1)**2) # ensures the operator norm of the gradient is controlled
-                              # stability conditions for the primal-dual algorithm; proportioanl to (N-1)^2
-    source /= source.sum() # normalization
-    dest /= dest.sum() # normalization
-    l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu) # calculate distance
+    source = np.loadtxt("Wigner_init_src.txt")
+    dest = np.loadtxt("Wigner_init_dest.txt")
+    dx = spacing[1]-spacing[0]
+    tau = 3
+    mu = 1./(16*tau*(N-1)**2)
+    source /= source.sum()
+    dest /= dest.sum()
+
+    #W_src = timeEvol(W_src)
+    #W_dest = timeEvol(W_dest)
+
+    #np.savetxt("Wigner_final_src.txt", W_src, delimiter=" ")
+    #np.savetxt("Wigner_final_dest.txt", W_dest, delimiter=" ")
+
+    # apply the for loop here
+    computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
+    print("Earth Mover's Distance at t = 0:", computedDistance)
     end_time = time.time()
     print(end_time-start_time)
