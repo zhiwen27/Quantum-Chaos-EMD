@@ -94,7 +94,7 @@ for step in range(n_t):
 
 np.savetxt("Wigner_dest.txt", W, delimiter=" ")
 
-'''
+
 i1 = np.argmin(np.abs(x - (-2)))
 j1 = np.argmin(np.abs(p - (-2)))
 print("\nW_derived value at closest (x=%.2f,p=%.2f):" % (x[i1], p[j1]), W[i1, j1])
@@ -118,7 +118,7 @@ print("\nW_derived value at closest (x=%.2f,p=%.2f):" % (x[i5], p[j5]), W[i5, j5
 i6 = np.argmin(np.abs(x - (2)))
 j6 = np.argmin(np.abs(p - (2)))
 print("\nW_derived value at closest (x=%.2f,p=%.2f):" % (x[i6], p[j6]), W[i6, j6])
-'''
+
 
 
 
