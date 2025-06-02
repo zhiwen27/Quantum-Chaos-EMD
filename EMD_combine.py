@@ -157,8 +157,7 @@ if __name__ == "__main__":
     np.savetxt("Wigner_init_dest.txt", W_dest, delimiter=" ")
 
     N = 51
-    spacing = np.linspace(-5,5,N)
-    x, y = np.meshgrid(spacing, spacing)
+    spacing = np.linspace(-6,6,N)
     
     source = np.loadtxt("Wigner_init_src.txt")
     dest = np.loadtxt("Wigner_init_dest.txt")
@@ -168,13 +167,15 @@ if __name__ == "__main__":
     source /= source.sum()
     dest /= dest.sum()
 
+    # ❗️ apply the for loop here
+    # ❗️ need improvement on parameters for accuracy
+
     #W_src = timeEvol(W_src)
     #W_dest = timeEvol(W_dest)
 
     #np.savetxt("Wigner_final_src.txt", W_src, delimiter=" ")
     #np.savetxt("Wigner_final_dest.txt", W_dest, delimiter=" ")
 
-    # apply the for loop here
     computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
     print("Earth Mover's Distance at t = 0:", computedDistance)
     end_time = time.time()
