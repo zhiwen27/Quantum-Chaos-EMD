@@ -67,13 +67,6 @@ if __name__ == "__main__":
     np.savetxt("dest.txt", dest, delimiter=" ")
     source = np.loadtxt("source.txt")
     dest = np.loadtxt("dest.txt")
-    #rho = 0.65
-    #p = 0.25
-    #theta = np.pi / 5
-    #source_exp = x **2 + (y **2 / rho **2)
-    #source = np.exp(-source_exp)
-    #dest_exp = x **2 * (np.cos(theta) **2 / p **2 + p **2 * np.sin(theta) **2 / rho **2) + 2*x*y*np.sin(theta)*np.cos(theta)*(1/ p **2 - p **2 / rho **2) + y **2 * (np.sin(theta)**2/ p **2 + p **2 * np.cos(theta) **2 / rho **2)
-    #dest = np.exp(-dest_exp)
     dx = spacing[1]-spacing[0] # spacing dx
     tau = 3 # common safe default for 2D/ 3D problems
     mu = 1./(16*tau*(N-1)**2) # ensures the operator norm of the gradient is controlled
@@ -83,25 +76,3 @@ if __name__ == "__main__":
     l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu) # calculate distance
     end_time = time.time()
     print(end_time-start_time)
-
-'''
-m: a vector field showing how much mass moves in each direction and where; the sum of magnitudes of m corresponds to how far
-and how much mass has to move.
-
-l2_update:
-gradient step: m += mu * ∇ϕ. Move m in the direction where the dual cost increases the most; satisfying the divergence constraint
-∇⋅m = rho_dest - rho_source = rhodiff
-shrink factor: proximal operator, enforces the regularization condition to tell strong transport directions.
-
-The algorithm updates the transport field m by taking a gradient step — using the gradient of the dual potential ϕ, which indicates
-how the potential changes most rapidly — and then applies a shrink factor that acts as a regularization to control the magnitude of 
-m. This process guides m toward representing the optimal transport directions and intensities (i.e., where and how much mass should
-move). Finally, the minimal transport cost is computed as the sum of the magnitudes of the vectors in m, since this sum corresponds
-to the total "effort" required to move the mass from the source to the destination.
-'''
-
-'''
-module load cuda/12.6
-export LD_LIBRARY_PATH=$CUDA_SPACK_ROOT/lib64:$LD_LIBRARY_PATH
-source ~/myenv/bin/activate
-'''

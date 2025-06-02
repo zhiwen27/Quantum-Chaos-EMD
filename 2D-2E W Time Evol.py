@@ -1,10 +1,9 @@
-
 import math
 import numpy as np
-import pandas as pd
+#import pandas as pd
 from scipy.integrate import quad
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # for 3D plots
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D  # for 3D plots
 
 
 m=1
@@ -14,13 +13,13 @@ h_bar=1
 # Define the domain boundaries and number of boxes
 x_min = -6
 x_max = 6
-n_x = 201   # Number of boxes (points = boxes)
+n_x = 51   # Number of boxes (points = boxes)
 p_min = -6
 p_max = 6
-n_p = 201
+n_p = 51
 
 t_f=0.1 #final time
-n_t=2000     #Number of steps taken for time
+n_t=1000     #Number of steps taken for time
 dt=t_f/n_t
 
 # Compute step sizes
@@ -39,7 +38,7 @@ def Psi(x):
     return result
 Psi_star=Psi
 
-
+# can do faster integration
 def Wigner(Psi_func):
     result=np.zeros((n_x,n_p))
     for i in range(n_x):
@@ -79,6 +78,7 @@ def f(W_array):
     result[2:-2,2:-2] = ((-1/m)*(P[2:-2,2:-2])*(xW_p[2:-2,2:-2])) + (m*(w**2)*(X[2:-2,2:-2])*(pW_p[2:-2,2:-2]))
     return result
 
+np.savetxt("Wigner_init.txt", W, delimiter=" ")
 #Grid for W_dot
 for step in range(n_t):
 
@@ -92,7 +92,9 @@ for step in range(n_t):
     W=W+(dt/6)*(k1+2*k2+2*k3+k4)
     W[0:2, :] = W[-2:, :] = W[:, 0:2] = W[:, -2:] = 0  # Zero the boundary
 
+np.savetxt("Wigner_dest.txt", W, delimiter=" ")
 
+'''
 i1 = np.argmin(np.abs(x - (-2)))
 j1 = np.argmin(np.abs(p - (-2)))
 print("\nW_derived value at closest (x=%.2f,p=%.2f):" % (x[i1], p[j1]), W[i1, j1])
@@ -116,7 +118,7 @@ print("\nW_derived value at closest (x=%.2f,p=%.2f):" % (x[i5], p[j5]), W[i5, j5
 i6 = np.argmin(np.abs(x - (2)))
 j6 = np.argmin(np.abs(p - (2)))
 print("\nW_derived value at closest (x=%.2f,p=%.2f):" % (x[i6], p[j6]), W[i6, j6])
-
+'''
 
 
 
@@ -174,5 +176,3 @@ pd.set_option("display.max_colwidth", None)
 #print("\nFinal pW_p at t=0.1\n:",DpW_p)
 #print("\nFinal W_dot at t=0.1\n:",DW_dot)
 '''
-
-

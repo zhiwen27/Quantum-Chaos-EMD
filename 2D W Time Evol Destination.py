@@ -1,11 +1,9 @@
-
-
 import math
 import numpy as np
-import pandas as pd
+#import pandas as pd
 from scipy.integrate import quad
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # for 3D plots
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D  # for 3D plots
 
 
 m=1
@@ -21,7 +19,7 @@ p_max = 6
 n_p = 201
 
 t_f=0.1 #final time
-n_t=2000     #Number of steps taken for time
+n_t=1000     #Number of steps taken for time
 dt=t_f/n_t
 
 # Compute step sizes
@@ -79,7 +77,8 @@ def f(W_array):
 
     result[2:-2,2:-2] = ((-1/m)*(P[2:-2,2:-2])*(xW_p[2:-2,2:-2])) + (m*(w**2)*(X[2:-2,2:-2])*(pW_p[2:-2,2:-2]))
     return result
-
+W_small = W[4:-3:4, 4:-3:4]
+np.savetxt("Wigner_init_dest.txt", W_small, delimiter=" ")
 #Grid for W_dot
 for step in range(n_t):
 
@@ -92,7 +91,8 @@ for step in range(n_t):
     k4=f(W3)
     W=W+(dt/6)*(k1+2*k2+2*k3+k4)
     W[0:2, :] = W[-2:, :] = W[:, 0:2] = W[:, -2:] = 0  # Zero the boundary
-
+W_small = W[4:-3:4, 4:-3:4]
+np.savetxt("Wigner_test_dest.txt", W_small, delimiter=" ")
 
 i1 = np.argmin(np.abs(x - (-2)))
 j1 = np.argmin(np.abs(p - (-2)))
