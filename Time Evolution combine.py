@@ -13,10 +13,10 @@ h_bar=1
 # Define the domain boundaries and number of boxes
 x_min = -6
 x_max = 6
-n_x = 51   # Number of boxes (points = boxes)
+n_x = 101   # Number of boxes (points = boxes)
 p_min = -6
 p_max = 6
-n_p = 51
+n_p = 101
 
 t_f=0.1 #final time
 n_t=1000     #Number of steps taken for time
