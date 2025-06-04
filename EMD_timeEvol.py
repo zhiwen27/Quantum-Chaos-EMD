@@ -21,6 +21,7 @@ n_p = 101
 t_f = 0.1
 n_t = 100
 dt = t_f/n_t
+# time
 t = 0.2
 
 dx = (x_max - x_min) / (n_x - 1)
@@ -28,9 +29,16 @@ dp = (p_max - p_min) / (n_p - 1)
 
 x = x_min + dx * np.arange(n_x)
 p = p_min + dp * np.arange(n_p)
+
 U = 0.5*m*w*w*x**2
 X, P = np.meshgrid(x, p,indexing='ij')
 
+# boxes
+N = 50
+spacing = np.linspace(-5,5,N)
+dx = spacing[1]-spacing[0]
+tau = 3
+mu = 1./(16*tau*(N-1)**2)
 
 def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx, dim):
     """Do an L2 update."""
@@ -89,31 +97,17 @@ def Psi_dest(x):
     #result = Psi_1
     return result
 Psi_star_dest = Psi_dest
-
-def Wigner_src(Psi_func):
+def Wigner(Psi_func,Psi_star_func):
     result = np.zeros((n_x,n_p))
     for i in range(n_x):
         for j in range(n_p):
-            integrand = lambda y: np.real(Psi_star_src(x[i]+y)*(Psi_src(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
+            integrand = lambda y: np.real(Psi_star_func(x[i]+y)*(Psi_func(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
             integral_value, _ = quad(integrand,x_min,x_max)
             result[i,j]=integral_value/(np.pi*h_bar)
     return result
 
-def Wigner_dest(Psi_func):
-    result = np.zeros((n_x,n_p))
-    for i in range(n_x):
-        for j in range(n_p):
-            integrand = lambda y: np.real(Psi_star_dest(x[i]+y)*(Psi_dest(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
-            integral_value, _ = quad(integrand,x_min,x_max)
-            result[i,j]=integral_value/(np.pi*h_bar)
-    return result
-W_src = Wigner_src(Psi_src)
-W_dest = Wigner_dest(Psi_dest)
-# downsample the boxes by averaging
-W_src_avr = W_src[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
-W_dest_avr = W_dest[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
-np.savetxt("source.txt", W_src_avr, delimiter=" ")
-np.savetxt("dest.txt", W_dest_avr, delimiter=" ")
+W_src = Wigner(Psi_src, Psi_star_src)
+W_dest = Wigner(Psi_dest, Psi_star_dest)
 
 def f(W_array):
     result = np.zeros((n_x,n_p))
@@ -139,7 +133,6 @@ def f(W_array):
 
 def timeEvol(W):
     for step in range(n_t):
-
         k1 = f(W)
         W1 = W+k1*dt/2
         k2 = f(W1)
@@ -151,16 +144,15 @@ def timeEvol(W):
         W[0:2, :] = W[-2:, :] = W[:, 0:2] = W[:, -2:] = 0
     return W
 
+def downSample(f):
+    return f[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
+
 start_time = time.time()
 if __name__ == "__main__":
-    N = 50
-    spacing = np.linspace(-5,5,N)
-    
-    source = np.loadtxt("source.txt")
-    dest = np.loadtxt("dest.txt")
-    dx = spacing[1]-spacing[0]
-    tau = 3
-    mu = 1./(16*tau*(N-1)**2)
+
+    source = downSample(W_src)
+    dest = downSample(W_dest)
+
     source /= source.sum()
     dest /= dest.sum()
 
@@ -170,14 +162,10 @@ if __name__ == "__main__":
     for i in range (int(t/t_f)):
         W_src = timeEvol(W_src)
         W_dest = timeEvol(W_dest)
-        W_src_avr = W_src[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
-        W_dest_avr = W_dest[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
+        
+        source = downSample(W_src)
+        dest = downSample(W_dest)
 
-        np.savetxt("source.txt", W_src_avr, delimiter=" ")
-        np.savetxt("dest.txt", W_dest_avr, delimiter=" ")
-
-        source = np.loadtxt("source.txt")
-        dest = np.loadtxt("dest.txt")
         source /= source.sum()
         dest /= dest.sum()
 
