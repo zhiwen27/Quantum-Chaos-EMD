@@ -1,5 +1,4 @@
-# ❗️ simplify the code structure
-# ❗️ can do faster integration
+# can do faster integration?
 import numpy as np
 import time
 import math
@@ -22,6 +21,7 @@ n_p = 101
 t_f = 0.1
 n_t = 100
 dt = t_f/n_t
+t = 0.2
 
 dx = (x_max - x_min) / (n_x - 1)
 dp = (p_max - p_min) / (n_p - 1)
@@ -95,7 +95,7 @@ def Wigner_src(Psi_func):
     for i in range(n_x):
         for j in range(n_p):
             integrand = lambda y: np.real(Psi_star_src(x[i]+y)*(Psi_src(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
-            integral_value, _ = quad(integrand,-np.inf,np.inf)
+            integral_value, _ = quad(integrand,x_min,x_max)
             result[i,j]=integral_value/(np.pi*h_bar)
     return result
 
@@ -104,7 +104,7 @@ def Wigner_dest(Psi_func):
     for i in range(n_x):
         for j in range(n_p):
             integrand = lambda y: np.real(Psi_star_dest(x[i]+y)*(Psi_dest(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
-            integral_value, _ = quad(integrand,-10,10)
+            integral_value, _ = quad(integrand,x_min,x_max)
             result[i,j]=integral_value/(np.pi*h_bar)
     return result
 W_src = Wigner_src(Psi_src)
@@ -167,7 +167,6 @@ if __name__ == "__main__":
     computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
     print("Earth Mover's Distance at t = 0:", computedDistance)
 
-    t = 0.2
     for i in range (int(t/t_f)):
         W_src = timeEvol(W_src)
         W_dest = timeEvol(W_dest)

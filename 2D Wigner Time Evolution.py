@@ -1,10 +1,13 @@
 import math
 import numpy as np
-#import pandas as pd
-from scipy.integrate import quad
-#import matplotlib.pyplot as plt
-#from mpl_toolkits.mplot3d import Axes3D  # for 3D plots
 
+#import sys
+#print(sys.executable)
+
+import pandas as pd
+from scipy.integrate import quad
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # for 3D plots
 
 m=1
 w=1
@@ -161,11 +164,11 @@ plt.colorbar()
 plt.show()
 
 
-DW_dot = pd.DataFrame(W_dot, index=x, columns=p)
-pd.set_option("display.max_rows", None)
-pd.set_option("display.max_columns", None)
-pd.set_option("display.width", None)
-pd.set_option("display.max_colwidth", None)
+#DW_dot = pd.DataFrame(W_dot, index=x, columns=p)
+#pd.set_option("display.max_rows", None)
+#pd.set_option("display.max_columns", None)
+#pd.set_option("display.width", None)
+#pd.set_option("display.max_colwidth", None)
 #print("\nGrid of W_dot at t=0:\n",DW_dot)
 #DxW_p = pd.DataFrame(xW_p, index=x, columns=p)
 #Dypsi_p = pd.DataFrame(pW_p, index=x, columns=p)
