@@ -6,7 +6,31 @@ import math
 import numpy as np
 from scipy.integrate import quad
 np.set_printoptions(threshold = np.inf)
+
 MAX_DIM = 4
+m = 1
+w = 1
+h_bar = 1
+
+x_min = -5
+x_max = 5
+n_x = 101
+p_min = -5
+p_max = 5
+n_p = 101
+
+t_f = 0.1
+n_t = 100
+dt = t_f/n_t
+
+dx = (x_max - x_min) / (n_x - 1)
+dp = (p_max - p_min) / (n_p - 1)
+
+x = x_min + dx * np.arange(n_x)
+p = p_min + dp * np.arange(n_p)
+U = 0.5*m*w*w*x**2
+X, P = np.meshgrid(x, p,indexing='ij')
+
 
 def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx, dim):
     """Do an L2 update."""
@@ -50,27 +74,6 @@ def l2_distance(source: np.ndarray, dest: np.ndarray, dx, maxiter=100000, tau=3,
         #    print(f"Iteration: {i}, L2 distance", np.sum(np.sqrt(np.sum(m**2,axis=0))))
     return np.sum(np.sqrt(np.sum(m**2,axis=0)))
 
-m = 1
-w = 1
-h_bar = 1
-
-x_min = -5
-x_max = 5
-n_x = 101
-p_min = -5
-p_max = 5
-n_p = 101
-
-t_f = 0.1
-n_t = 100
-dt = t_f/n_t
-
-dx = (x_max - x_min) / (n_x - 1)
-dp = (p_max - p_min) / (n_p - 1)
-
-x = x_min + dx * np.arange(n_x)
-p = p_min + dp * np.arange(n_p)
-
 def Psi_src(x):
     Psi_0 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar)))
     Psi_1 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar))*(np.sqrt(2*m*w/h_bar))*x)
@@ -109,11 +112,8 @@ W_dest = Wigner_dest(Psi_dest)
 # downsample the boxes by averaging
 W_src_avr = W_src[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
 W_dest_avr = W_dest[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
-np.savetxt("Wigner_init_src.txt", W_src_avr, delimiter=" ")
-np.savetxt("Wigner_init_dest.txt", W_dest_avr, delimiter=" ")
-
-U = 0.5*m*w*w*x**2
-X, P = np.meshgrid(x, p,indexing='ij')
+np.savetxt("source.txt", W_src_avr, delimiter=" ")
+np.savetxt("dest.txt", W_dest_avr, delimiter=" ")
 
 def f(W_array):
     result = np.zeros((n_x,n_p))
@@ -156,8 +156,8 @@ if __name__ == "__main__":
     N = 50
     spacing = np.linspace(-5,5,N)
     
-    source = np.loadtxt("Wigner_init_src.txt")
-    dest = np.loadtxt("Wigner_init_dest.txt")
+    source = np.loadtxt("source.txt")
+    dest = np.loadtxt("dest.txt")
     dx = spacing[1]-spacing[0]
     tau = 3
     mu = 1./(16*tau*(N-1)**2)
@@ -174,11 +174,11 @@ if __name__ == "__main__":
         W_src_avr = W_src[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
         W_dest_avr = W_dest[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
 
-        np.savetxt("Wigner_final_src.txt", W_src_avr, delimiter=" ")
-        np.savetxt("Wigner_final_dest.txt", W_dest_avr, delimiter=" ")
+        np.savetxt("source.txt", W_src_avr, delimiter=" ")
+        np.savetxt("dest.txt", W_dest_avr, delimiter=" ")
 
-        source = np.loadtxt("Wigner_final_src.txt")
-        dest = np.loadtxt("Wigner_final_dest.txt")
+        source = np.loadtxt("source.txt")
+        dest = np.loadtxt("dest.txt")
         source /= source.sum()
         dest /= dest.sum()
 
