@@ -11,18 +11,18 @@ m = 1
 w = 1
 h_bar = 1
 
-x_min = -5
-x_max = 5
+x_min = -6
+x_max = 6
 n_x = 101
-p_min = -5
-p_max = 5
+p_min = -6
+p_max = 6
 n_p = 101
 
 t_f = 0.1
 n_t = 100
 dt = t_f/n_t
 # time
-t = 0.2
+t = 2
 
 dx = (x_max - x_min) / (n_x - 1)
 dp = (p_max - p_min) / (n_p - 1)
@@ -34,8 +34,8 @@ U = 0.5*m*w*w*x**2
 X, P = np.meshgrid(x, p,indexing='ij')
 
 # boxes
-N = 50
-spacing = np.linspace(-5,5,N)
+N = 100
+spacing = np.linspace(x_min,x_max,N)
 dx = spacing[1]-spacing[0]
 tau = 3
 mu = 1./(16*tau*(N-1)**2)
@@ -88,7 +88,6 @@ def Psi_src(x):
     result = np.sqrt(3/5)*Psi_0 + np.sqrt(2/5)*Psi_1
     #result = Psi_0
     return result
-Psi_star_src = Psi_src
 
 def Psi_dest(x):
     Psi_0 = ((m * w / (np.pi * h_bar))**0.25)*(np.exp(-m * w * x**2 / (2 * h_bar)))
@@ -96,18 +95,21 @@ def Psi_dest(x):
     result = np.sqrt(3.1/5)*Psi_0 + np.sqrt(1.9/5)*Psi_1
     #result = Psi_1
     return result
+
+Psi_star_src = Psi_src
 Psi_star_dest = Psi_dest
+
 def Wigner(Psi_func,Psi_star_func):
     result = np.zeros((n_x,n_p))
     for i in range(n_x):
         for j in range(n_p):
             integrand = lambda y: np.real(Psi_star_func(x[i]+y)*(Psi_func(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
-            integral_value, _ = quad(integrand,x_min,x_max)
+            integral_value, _ = quad(integrand,-np.inf,np.inf)
             result[i,j]=integral_value/(np.pi*h_bar)
     return result
 
-W_src = Wigner(Psi_src, Psi_star_src)
-W_dest = Wigner(Psi_dest, Psi_star_dest)
+source = Wigner(Psi_src, Psi_star_src)
+dest = Wigner(Psi_dest, Psi_star_dest)
 
 def f(W_array):
     result = np.zeros((n_x,n_p))
@@ -144,33 +146,25 @@ def timeEvol(W):
         W[0:2, :] = W[-2:, :] = W[:, 0:2] = W[:, -2:] = 0
     return W
 
-def downSample(f):
-    return f[:100,:100].reshape(50, 2, 50, 2).mean(axis=(1, 3))
-
 start_time = time.time()
 if __name__ == "__main__":
-
-    source = downSample(W_src)
-    dest = downSample(W_dest)
 
     source /= source.sum()
     dest /= dest.sum()
 
     computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
-    print("Earth Mover's Distance at t = 0:", computedDistance)
+    print("Earth Mover's Distance at t = 0s:", computedDistance)
 
     for i in range (int(t/t_f)):
-        W_src = timeEvol(W_src)
-        W_dest = timeEvol(W_dest)
-        
-        source = downSample(W_src)
-        dest = downSample(W_dest)
+
+        source = timeEvol(source)
+        dest = timeEvol(dest)
 
         source /= source.sum()
         dest /= dest.sum()
 
         computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
-        print("Earth Mover's Distance at t = " + str((i + 1) * t_f) + "s:", computedDistance)
+        print("Earth Mover's Distance at t = " + f"{(i + 1) * t_f:.1f}" + "s:", computedDistance)
 
     end_time = time.time()
     print(end_time-start_time)
