@@ -23,7 +23,7 @@ t_f = 0.1
 n_t = 100
 dt = t_f/n_t
 # time
-t = 10
+t = 1
 
 dx = (x_max - x_min) / (n_x - 1)
 dp = (p_max - p_min) / (n_p - 1)
@@ -43,7 +43,7 @@ mu = 1./(16*tau*(N-1)**2)
 
 y_min = -6
 y_max = 6
-n_y = 512
+n_y = 256
 y_vals = np.linspace(y_min,y_max,n_y)
 dy = y_vals[1] - y_vals[0]
 
