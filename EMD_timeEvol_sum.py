@@ -41,6 +41,12 @@ dx = spacing[1]-spacing[0]
 tau = 3
 mu = 1./(16*tau*(N-1)**2)
 
+y_min = -6
+y_max = 6
+n_y = 512
+y_vals = np.linspace(y_min,y_max,n_y)
+dy = y_vals[1] - y_vals[0]
+
 def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx, dim):
     """Do an L2 update."""
 
@@ -102,14 +108,9 @@ Psi_star_dest = Psi_dest
 
 def Wigner(Psi_func,Psi_star_func):
     result = np.zeros((n_x,n_p))
-    y_min = -6
-    y_max = -6
-    n_y = 512
-    y_vals = np.linspace(y_min,y_max,n_y)
-    dy = y_vals[1] - y_vals[0]
     for i in range(n_x):
         for j in range(n_p):
-            integrand = np.real(Psi_star_func(x[i]+y)*(Psi_func(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
+            integrand = np.real(Psi_star_func(x[i]+y_vals)*(Psi_func(x[i]-y_vals))*np.exp(2j*p[j]*y_vals/h_bar))
             integral_value = np.sum(integrand) * dy
             result[i,j]=integral_value/(np.pi*h_bar)
     return result
