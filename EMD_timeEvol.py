@@ -4,6 +4,7 @@ import time
 import math
 import numpy as np
 from scipy.integrate import quad
+import matplotlib.pyplot as plt
 np.set_printoptions(threshold = np.inf)
 
 MAX_DIM = 4
@@ -22,7 +23,7 @@ t_f = 0.1
 n_t = 100
 dt = t_f/n_t
 # time
-t = 2
+t = 20
 
 dx = (x_max - x_min) / (n_x - 1)
 dp = (p_max - p_min) / (n_p - 1)
@@ -30,7 +31,7 @@ dp = (p_max - p_min) / (n_p - 1)
 x = x_min + dx * np.arange(n_x)
 p = p_min + dp * np.arange(n_p)
 
-U = 0.5*m*w*w*x**2
+U = 0.5*m*w**2*x**2
 X, P = np.meshgrid(x, p,indexing='ij')
 
 # boxes
@@ -146,6 +147,7 @@ def timeEvol(W):
         W[0:2, :] = W[-2:, :] = W[:, 0:2] = W[:, -2:] = 0
     return W
 
+emd = []
 start_time = time.time()
 if __name__ == "__main__":
 
@@ -153,6 +155,7 @@ if __name__ == "__main__":
     dest /= dest.sum()
 
     computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
+    emd.append(computedDistance)
     print("Earth Mover's Distance at t = 0s:", computedDistance)
 
     for i in range (int(t/t_f)):
@@ -164,7 +167,16 @@ if __name__ == "__main__":
         dest /= dest.sum()
 
         computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
+        emd.append(computedDistance)
         print("Earth Mover's Distance at t = " + f"{(i + 1) * t_f:.1f}" + "s:", computedDistance)
 
     end_time = time.time()
     print(end_time-start_time)
+    times = np.arange(0, t + t_f, t_f)
+    plt.figure()
+    plt.plot(times, emd, marker='o')
+    plt.xlabel('Time (s)')
+    plt.ylabel("Earth Mover's Distance")
+    plt.title("EMD evolution over time")
+    plt.grid(True)
+    plt.show()
