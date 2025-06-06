@@ -23,7 +23,7 @@ t_f = 0.1
 n_t = 100
 dt = t_f/n_t
 # time
-t = 10
+t = 1
 
 dx = (x_max - x_min) / (n_x - 1)
 dp = (p_max - p_min) / (n_p - 1)
@@ -65,7 +65,7 @@ def l2_update(phi: cp.ndarray, m: cp.ndarray, m_temp: cp.ndarray, rhodiff: cp.nd
     
     phi += tau * (divergence/dx + rhodiff)
 
-def l2_distance(source: np.ndarray, dest: np.ndarray, dx, maxiter=100000, tau=3, mu=3e-6):
+def l2_distance(source: cp.ndarray, dest: cp.ndarray, dx, maxiter=100000, tau=3, mu=3e-6):
     """Compute L2 earth mover's distance between two N-dimensional arrays."""
 
     if len(source.shape) > MAX_DIM:
@@ -104,9 +104,9 @@ def Wigner(Psi_func,Psi_star_func):
     result = cp.zeros((n_x,n_p))
     for i in range(n_x):
         for j in range(n_p):
-            integrand = lambda y: np.real(Psi_star_func(x[i]+y)*(Psi_func(x[i]-y))*np.exp(2j*p[j]*y/h_bar))
-            integral_value, _ = quad(integrand,-np.inf,np.inf)
-            result[i,j]=integral_value/(np.pi*h_bar)
+            integrand = lambda y: cp.real(Psi_star_func(x[i]+y)*(Psi_func(x[i]-y))*cp.exp(2j*p[j]*y/h_bar))
+            integral_value, _ = quad(integrand,-cp.inf,cp.inf)
+            result[i,j]=integral_value/(cp.pi*h_bar)
     return result
 
 source = Wigner(Psi_src, Psi_star_src)
@@ -169,3 +169,9 @@ if __name__ == "__main__":
 
     end_time = time.time()
     print(end_time-start_time)
+
+'''
+module load cuda/12.6
+export LD_LIBRARY_PATH=$CUDA_SPACK_ROOT/lib64:$LD_LIBRARY_PATH
+source ~/myenv/bin/activate
+'''
