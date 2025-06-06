@@ -37,21 +37,21 @@ X, P = np.meshgrid(x, p,indexing='ij')
 # boxes
 N = 100
 spacing = np.linspace(x_min,x_max,N)
-dx = spacing[1]-spacing[0]
+dx_emd = spacing[1]-spacing[0]
 tau = 3
 mu = 1./(16*tau*(N-1)**2)
 
-def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx, dim):
+def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx_emd, dim):
     """Do an L2 update."""
 
     m_temp[:] = -m
-    m[0, :-1] += mu * (phi[1:] - phi[:-1]) / dx
+    m[0, :-1] += mu * (phi[1:] - phi[:-1]) / dx_emd
     if dim > 1:
-        m[1, :, :-1] += mu * (phi[:, 1:] - phi[:, :-1]) / dx
+        m[1, :, :-1] += mu * (phi[:, 1:] - phi[:, :-1]) / dx_emd
     if dim > 2:
-        m[2, :, :, :-1] += mu * (phi[:, :, 1:] - phi[:, :, :-1]) / dx
+        m[2, :, :, :-1] += mu * (phi[:, :, 1:] - phi[:, :, :-1]) / dx_emd
     if dim > 3:
-        m[3, :, :, :, :-1] += mu * (phi[:, :, :, 1:] - phi[:, :, :, :-1]) / dx
+        m[3, :, :, :, :-1] += mu * (phi[:, :, :, 1:] - phi[:, :, :, :-1]) / dx_emd
     
     norm = np.sqrt(np.sum(m**2, axis=0))
     shrink_factor = 1 - mu / np.maximum(norm, mu)
@@ -63,9 +63,9 @@ def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.nd
     if dim > 2: divergence[:, :, 1:] -= m_temp[2, :, :, :-1]
     if dim > 3: divergence[:, :, :, 1:] -= m_temp[3, :, :, :, :-1]
     
-    phi += tau * (divergence/dx + rhodiff)
+    phi += tau * (divergence/dx_emd + rhodiff)
 
-def l2_distance(source: np.ndarray, dest: np.ndarray, dx, maxiter=100000, tau=3, mu=3e-6):
+def l2_distance(source: np.ndarray, dest: np.ndarray, dx_emd, maxiter=100000, tau=3, mu=3e-6):
     """Compute L2 earth mover's distance between two N-dimensional arrays."""
 
     if len(source.shape) > MAX_DIM:
@@ -78,7 +78,7 @@ def l2_distance(source: np.ndarray, dest: np.ndarray, dx, maxiter=100000, tau=3,
     m_temp = np.zeros_like(m)
     dim = len(phi.shape)
     for i in range(maxiter):
-        l2_update(phi, m, m_temp, rhodiff, tau=tau, mu=mu, dx=dx, dim=dim)
+        l2_update(phi, m, m_temp, rhodiff, tau=tau, mu=mu, dx_emd=dx_emd, dim=dim)
         #if i %1000 == 0:
         #    print(f"Iteration: {i}, L2 distance", np.sum(np.sqrt(np.sum(m**2,axis=0))))
     return np.sum(np.sqrt(np.sum(m**2,axis=0)))
@@ -117,17 +117,19 @@ def f(W_array):
 
     def xW_dev(W_array):
         result = np.zeros((n_x,n_p))
-        for i in range(2,n_x-2):
-            for j in range(2,n_p-2):
-                result[i, j] = (-W_array[i + 2, j] + 8 * W_array[i + 1, j]- 8 * W_array[i - 1, j] + W_array[i - 2, j]) / (12 * dx)
+        result[2:-2, 2:-2] = (-W_array[4:, 2:-2] + 8 * W_array[3:-1, 2:-2]- 8 * W_array[1:-3, 2:-2] + W_array[0:-4, 2:-2]) / (12 * dx)
+        #for i in range(2,n_x-2):
+        #    for j in range(2,n_p-2):
+        #        result[i, j] = (-W_array[i + 2, j] + 8 * W_array[i + 1, j]- 8 * W_array[i - 1, j] + W_array[i - 2, j]) / (12 * dx)
         return result
     xW_p = xW_dev(W_array)
 
     def pW_dev(W_array):
         result = np.zeros((n_x,n_p))
-        for i in range(2,n_x-2):
-            for j in range(2,n_p-2):
-                result[i, j] = (-W_array[i, j + 2] + 8 * W_array[i, j + 1]- 8 * W_array[i, j - 1] + W_array[i, j - 2]) / (12 * dp)
+        result[2:-2, 2:-2] = (-W_array[2:-2, 4:] + 8 * W_array[2:-2, 3:-1]- 8 * W_array[2:-2, 1:-3] + W_array[2:-2, 0:-4]) / (12 * dx)
+        #for i in range(2,n_x-2):
+        #    for j in range(2,n_p-2):
+        #        result[i, j] = (-W_array[i, j + 2] + 8 * W_array[i, j + 1]- 8 * W_array[i, j - 1] + W_array[i, j - 2]) / (12 * dp)
         return result
     pW_p = pW_dev(W_array)
 
@@ -154,7 +156,7 @@ if __name__ == "__main__":
     source /= source.sum()
     dest /= dest.sum()
 
-    computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
+    computedDistance = l2_distance(source, dest, maxiter=40000, dx_emd=dx_emd, tau=tau, mu = mu)
     emd.append(computedDistance)
     print("Earth Mover's Distance at t = 0s:", computedDistance)
 
@@ -166,7 +168,7 @@ if __name__ == "__main__":
         source /= source.sum()
         dest /= dest.sum()
 
-        computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
+        computedDistance = l2_distance(source, dest, maxiter=40000, dx_emd=dx_emd, tau=tau, mu = mu)
         emd.append(computedDistance)
         print("Earth Mover's Distance at t = " + f"{(i + 1) * t_f:.1f}" + "s:", computedDistance)
 
