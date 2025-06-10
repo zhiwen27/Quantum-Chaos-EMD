@@ -58,15 +58,19 @@ def l2_distance(source: np.ndarray, dest: np.ndarray, dx, maxiter=100000, tau=3,
 
 start_time = time.time()
 if __name__ == "__main__":
-    N = 50
-    spacing = np.linspace(-5,5,N) # space the grids with width determined by N
-    x, y = np.meshgrid(spacing, spacing) # create 2D arrays x and y with spacing
-    source = np.exp(-((.8-x)**2+(.8-y)**2)/2) / (2*np.pi) ** .5 # source with x and y
-    dest = np.exp(-((.6-x)**2+(.6-y)**2)/2) / (2*np.pi) ** .5 # dest with x and y
-    np.savetxt("source.txt", source, delimiter=" ")
-    np.savetxt("dest.txt", dest, delimiter=" ")
-    source = np.loadtxt("source.txt")
-    dest = np.loadtxt("dest.txt")
+    N = 32 
+    spacing = np.linspace(-10, 10, N)
+    x,y,z,w = np.meshgrid(spacing, spacing, spacing, spacing)
+
+    sigma = 1
+    mu = np.array([1., -1., 3., 5**.5])
+    source = np.exp(-.5*(x**2+y**2+z**2+w**2)/sigma)
+    dest = np.exp(-.5*((x-mu[0])**2+(y-mu[1])**2+(z-mu[2])**2+(w-mu[3])**2)/sigma)
+    #N = 50
+    #spacing = np.linspace(-5,5,N) # space the grids with width determined by N
+    #x, y = np.meshgrid(spacing, spacing) # create 2D arrays x and y with spacing
+    #source = np.exp(-((.8-x)**2+(.8-y)**2)/2) / (2*np.pi) ** .5 # source with x and y
+    #dest = np.exp(-((.6-x)**2+(.6-y)**2)/2) / (2*np.pi) ** .5 # dest with x and y
     #rho = 0.65
     #p = 0.25
     #theta = np.pi / 5
