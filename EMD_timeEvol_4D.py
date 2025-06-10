@@ -5,12 +5,13 @@ from scipy.integrate import simpson as simps
 #import sys
 #print(sys.executable)
 from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
 import time
 
 np.set_printoptions(threshold=np.inf)
 MAX_DIM = 4
 
-start_time = time.time()
+
 m=1
 w=1
 h_bar=1
@@ -144,17 +145,18 @@ def f(W_array):
     )
 
 # RK4 time evolution
-for step in range(n_t):
-
-    k1=f(W)
-    W1=W+k1*dt/2
-    k2=f(W1)
-    W2=W+k2*dt/2
-    k3=f(W2)
-    W3=W+k3*dt
-    k4=f(W3)
-    W=W+(dt/6)*(k1+2*k2+2*k3+k4)
-    W[0:2, :, :, :] = W[-2:, :, :, :] = W[:, 0:2, :, :] = W[:, -2:, :, :] = W[:, :, 0:2, :] = W[:, :, -2:, :] = W[:, :, :, 0:2] = W[:, :, :, -2:] = 0
+def timeEvol(W):
+    for step in range(n_t):
+        k1=f(W)
+        W1=W+k1*dt/2
+        k2=f(W1)
+        W2=W+k2*dt/2
+        k3=f(W2)
+        W3=W+k3*dt
+        k4=f(W3)
+        W=W+(dt/6)*(k1+2*k2+2*k3+k4)
+        W[0:2, :, :, :] = W[-2:, :, :, :] = W[:, 0:2, :, :] = W[:, -2:, :, :] = W[:, :, 0:2, :] = W[:, :, -2:, :] = W[:, :, :, 0:2] = W[:, :, :, -2:] = 0
+    return W
 
 
 def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx, dim):
@@ -205,6 +207,40 @@ def l2_distance(source: np.ndarray, dest: np.ndarray, dx, maxiter=100000, tau=3,
             print(f"Iteration: {i}, L2 distance", np.sum(np.sqrt(np.sum(m**2,axis=0))))
     return np.sum(np.sqrt(np.sum(m**2,axis=0))) # calculate minimum cost by summing up all magnitudes of m vector field
 
+start_time = time.time()
+emd = []
+start_time = time.time()
+if __name__ == "__main__":
+
+    source /= source.sum()
+    dest /= dest.sum()
+
+    computedDistance = l2_distance(source, dest, maxiter=40000, dx_emd=dx_emd, tau=tau, mu = mu)
+    emd.append(computedDistance)
+    print("Earth Mover's Distance at t = 0s:", computedDistance)
+
+    for i in range (int(t/t_f)):
+
+        source = timeEvol(source)
+        dest = timeEvol(dest)
+
+        source /= source.sum()
+        dest /= dest.sum()
+
+        computedDistance = l2_distance(source, dest, maxiter=40000, dx_emd=dx_emd, tau=tau, mu = mu)
+        emd.append(computedDistance)
+        print("Earth Mover's Distance at t = " + f"{(i + 1) * t_f:.1f}" + "s:", computedDistance)
+
+    end_time = time.time()
+    print(end_time-start_time)
+    times = np.arange(0, t + t_f, t_f)
+    plt.figure()
+    plt.plot(times, emd, marker='o')
+    plt.xlabel('Time (s)')
+    plt.ylabel("Earth Mover's Distance")
+    plt.title("EMD evolution over time")
+    plt.grid(True)
+    plt.show()
 
 end_time = time.time()  # << END TIMER
 elapsed_time = end_time - start_time
