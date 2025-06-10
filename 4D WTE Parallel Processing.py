@@ -2,8 +2,11 @@ import math
 import numpy as np
 import pandas as pd
 from scipy.integrate import simpson as simps
+#import sys
+#print(sys.executable)
 from joblib import Parallel, delayed
 import time
+
 start_time = time.time()
 
 
