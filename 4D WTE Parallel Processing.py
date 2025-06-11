@@ -53,10 +53,9 @@ y_min, y_max = -5, 5
 n_y = 70  # number of points for integration grid
 y1_vals = np.linspace(y_min, y_max, n_y)
 y2_vals = np.linspace(y_min, y_max, n_y)
-
+Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
 
 def compute_wigner_element(i, j, k, l):
-    Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
     integrand_vals = np.real(
         Psi_star(x1[i] + Y1, x2[j] + Y2) *
         Psi(x1[i] - Y1, x2[j] - Y2) *
