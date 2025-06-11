@@ -27,7 +27,7 @@ dx2 = (x2_max - x2_min) / (n_x2 - 1)
 dp1 = (p1_max - p1_min) / (n_p1 - 1)
 dp2 = (p2_max - p2_min) / (n_p2 - 1)
 
-N = 32 
+N = 70 
 spacing = np.linspace(-10, 10, N)
 x,y,z,w = np.meshgrid(spacing, spacing, spacing, spacing)
 dx_emd = spacing[1]-spacing[0] # spacing dx
