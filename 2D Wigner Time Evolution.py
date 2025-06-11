@@ -62,19 +62,13 @@ def f(W_array):
 
     def xW_dev(W_array):
         result=np.zeros((n_x,n_p))
-        for i in range(2,n_x-2):
-            for j in range(2,n_p-2):
-                # Using 4th-order central differences
-                result[i, j] = (-W_array[i + 2, j] + 8 * W_array[i + 1, j]- 8 * W_array[i - 1, j] + W_array[i - 2, j]) / (12 * dx)
+        result[2:-2, 2:-2] = (-W_array[4:, 2:-2] + 8 * W_array[3:-1, 2:-2]- 8 * W_array[1:-3, 2:-2] + W_array[0:-4, 2:-2]) / (12 * dx)
         return result
     xW_p=xW_dev(W_array)
 
     def pW_dev(W_array):
         result=np.zeros((n_x,n_p))
-        for i in range(2,n_x-2):
-            for j in range(2,n_p-2):
-                # Using 4th-order central differences
-                result[i, j] = (-W_array[i, j + 2] + 8 * W_array[i, j + 1]- 8 * W_array[i, j - 1] + W_array[i, j - 2]) / (12 * dp)
+        result[2:-2, 2:-2] = (-W_array[2:-2, 4:] + 8 * W_array[2:-2, 3:-1]- 8 * W_array[2:-2, 1:-3] + W_array[2:-2, 0:-4]) / (12 * dx)
         return result
     pW_p=pW_dev(W_array)
 
