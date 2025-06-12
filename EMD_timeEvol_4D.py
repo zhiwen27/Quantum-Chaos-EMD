@@ -148,18 +148,17 @@ def wignerTimeEvol(q):
     #for i in range (int(t/t_f)):
     source = timeEvol(source)
     dest = timeEvol(dest)
-    q.put((t_f,source,dest))
+    q.put((0.1,source,dest))
     q.put(None)
 
 def emdCal(q):
     import cupy as cp
     N = 50
     spacing = np.linspace(-10, 10, N)
-
     dx = spacing[1]-spacing[0]
     tau = 3
     mu = 1./(16*tau*(N-1)**2)
-    def l2_update(phi: np.ndarray, m: np.ndarray, m_temp: np.ndarray, rhodiff: np.ndarray, tau, mu, dx, dim):
+    def l2_update(phi: cp.ndarray, m: cp.ndarray, m_temp: cp.ndarray, rhodiff: cp.ndarray, tau, mu, dx, dim):
         m_temp[:] = -m
         m[0, :-1] += mu * (phi[1:] - phi[:-1]) / dx
         if dim > 1:
@@ -169,8 +168,8 @@ def emdCal(q):
         if dim > 3:
             m[3, :, :, :, :-1] += mu * (phi[:, :, :, 1:] - phi[:, :, :, :-1]) / dx
             
-        norm = np.sqrt(np.sum(m**2, axis=0))
-        shrink_factor = 1 - mu / np.maximum(norm, mu)
+        norm = cp.sqrt(cp.sum(m**2, axis=0))
+        shrink_factor = 1 - mu / cp.maximum(norm, mu)
         m *= shrink_factor[None, ...]
         m_temp += 2*m
         divergence = m_temp.sum(axis=0)
@@ -185,16 +184,16 @@ def emdCal(q):
             raise ValueError(f"Dimensions of greater than {MAX_DIM} are not supported!")
         elif source.shape != dest.shape:
             raise ValueError(f"Dimension mismatch between source and destination! Source shape is '{source.shape}', dest shape is '{dest.shape}'.")
-        rhodiff = np.array(dest-source)
-        phi = np.zeros_like(rhodiff)
-        m = np.zeros((len(phi.shape),) + phi.shape)
-        m_temp = np.zeros_like(m)
+        rhodiff = cp.array(dest-source)
+        phi = cp.zeros_like(rhodiff)
+        m = cp.zeros((len(phi.shape),) + phi.shape)
+        m_temp = cp.zeros_like(m)
         dim = len(phi.shape)
         for i in range(maxiter):
             l2_update(phi, m, m_temp, rhodiff, tau=tau, mu=mu, dx=dx, dim=dim)
             if i %1000 == 0:
-                print(f"Iteration: {i}, L2 distance", np.sum(np.sqrt(np.sum(m**2,axis=0))))
-        return np.sum(np.sqrt(np.sum(m**2,axis=0)))
+                print(f"Iteration: {i}, L2 distance", cp.sum(cp.sqrt(cp.sum(m**2,axis=0))))
+        return cp.sum(cp.sqrt(cp.sum(m**2,axis=0)))
 
     while(True):
         i = q.get()
