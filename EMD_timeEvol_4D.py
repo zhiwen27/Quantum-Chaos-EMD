@@ -47,13 +47,13 @@ def wignerTimeEvol(q):
 
     def Psi_src(x1,x2):
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-        Psi_0_1 = (np.sqrt(2)*(m**3 * w**3 / (np.pi * h_bar**3))**0.25)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+        Psi_0_1 = (np.sqrt(2 / np.pi) * (m * w / h_bar)**0.75)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3/5)*Psi_0_0 + np.sqrt(2/5)*Psi_0_1
         return result
 
     def Psi_dest(x1,x2):
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-        Psi_0_1 = (np.sqrt(2)*(m**3 * w**3 / (np.pi * h_bar**3))**0.25)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+        Psi_0_1 = (np.sqrt(2 / np.pi) * (m * w / h_bar)**0.75)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3.1/5)*Psi_0_0 + np.sqrt(1.9/5)*Psi_0_1
         return result
     Psi_star_src = lambda x1, x2: np.conj(Psi_src(x1, x2))
