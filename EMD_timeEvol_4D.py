@@ -47,13 +47,13 @@ def wignerTimeEvol(q):
 
     def Psi_src(x1,x2):
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-        Psi_0_1 = (np.sqrt(2 / np.pi) * (m * w / h_bar)**0.75)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+        Psi_0_1 = (np.sqrt(2 * m * w / h_bar)*(m * w / (np.pi * h_bar))**0.5)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3/5)*Psi_0_0 + np.sqrt(2/5)*Psi_0_1
         return result
 
     def Psi_dest(x1,x2):
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-        Psi_0_1 = (np.sqrt(2 / np.pi) * (m * w / h_bar)**0.75)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+        Psi_0_1 = (np.sqrt(2 * m * w / h_bar)*(m * w / (np.pi * h_bar))**0.5)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3.1/5)*Psi_0_0 + np.sqrt(1.9/5)*Psi_0_1
         return result
     Psi_star_src = lambda x1, x2: np.conj(Psi_src(x1, x2))
@@ -191,8 +191,8 @@ def emdCal(q):
         dim = len(phi.shape)
         for i in range(maxiter):
             l2_update(phi, m, m_temp, rhodiff, tau=tau, mu=mu, dx=dx, dim=dim)
-            if i %1000 == 0:
-                print(f"Iteration: {i}, L2 distance", cp.sum(cp.sqrt(cp.sum(m**2,axis=0))))
+            #if i %1000 == 0:
+            #    print(f"Iteration: {i}, L2 distance", cp.sum(cp.sqrt(cp.sum(m**2,axis=0))))
         return cp.sum(cp.sqrt(cp.sum(m**2,axis=0)))
 
     while(True):

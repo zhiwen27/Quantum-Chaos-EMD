@@ -43,7 +43,7 @@ p2 = np.linspace(p2_min, p2_max, n_p2)
 
 def Psi(x1,x2):
     Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-    Psi_0_1 = (np.sqrt(2 / np.pi) * (m * w / h_bar)**0.75)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+    Psi_0_1 = (np.sqrt(2 * m * w / h_bar)*(m * w / (np.pi * h_bar))**0.5)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
     result=np.sqrt(3/5)*Psi_0_0 + np.sqrt(2/5)*Psi_0_1
     return result
 Psi_star = lambda x1, x2: np.conj(Psi(x1, x2))
