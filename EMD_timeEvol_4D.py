@@ -76,13 +76,10 @@ def wignerTimeEvol(q):
 
         return result
 
-
     W = Wigner(Psi)
 
-
-    X1,X2,P1,P2 = np.meshgrid(x1,x2,p1,p2,indexing='ij')  # full 2D grid versions of x and p  #Grid for X,P
+    X1,X2,P1,P2 = np.meshgrid(x1,x2,p1,p2,indexing='ij')
     U = 0.5*m*w*w*(X1**2+X2**2)
-
 
     def central_diff_4th_order_parallel(W_array, axis, spacing, n_jobs=-1):
         result = np.zeros_like(W_array)
@@ -152,7 +149,7 @@ def wignerTimeEvol(q):
 
 def emdCal(q):
     import cupy as cp
-    N = 30
+    N = 50
     spacing = np.linspace(-10, 10, N)
     dx = spacing[1]-spacing[0]
     tau = 3
