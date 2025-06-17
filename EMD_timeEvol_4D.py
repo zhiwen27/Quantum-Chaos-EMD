@@ -86,6 +86,7 @@ def wignerTimeEvol(q):
 
     source = Wigner(Psi_src,Psi_src_star)
     dest = Wigner(Psi_dest,Psi_dest_star)
+    q.put((0,source,dest))
 
     X1,X2,P1,P2 = np.meshgrid(x1,x2,p1,p2,indexing='ij')
     U = 0.5*m*w*w*(X1**2+X2**2)
