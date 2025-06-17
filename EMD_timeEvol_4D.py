@@ -10,66 +10,57 @@ MAX_DIM = 4
 q = Queue(maxsize=5)
 
 def wignerTimeEvol(q):
-    m = 1
-    w = 1
+    m=1
+    w=1
     h_bar=1
 
-    x1_min, x1_max = -6, 6
-    x2_min, x2_max = -6, 6
-    n_x1, n_x2 = 30, 30
+    x1_min, x1_max = -5,5
+    x2_min, x2_max = -5,5
+    n_x1, n_x2 = 50, 50
 
-    p1_min, p1_max = -6, 6
-    p2_min, p2_max = -6, 6
-    n_p1, n_p2 = 30, 30
+    p1_min, p1_max = -5, 5
+    p2_min, p2_max = -5, 5
+    n_p1, n_p2 = 50, 50
 
     dx1 = (x1_max - x1_min) / (n_x1 - 1)
     dx2 = (x2_max - x2_min) / (n_x2 - 1)
     dp1 = (p1_max - p1_min) / (n_p1 - 1)
     dp2 = (p2_max - p2_min) / (n_p2 - 1)
 
-    t_f = 0.1
-    n_t = 100
-    dt = t_f/n_t
-    t = 0.2
+    t_f=0.1  #final time
+    n_t=100
+    dt=t_f/n_t
+    t = 0.1
 
     x1 = np.linspace(x1_min, x1_max, n_x1)
     x2 = np.linspace(x2_min, x2_max, n_x2)
     p1 = np.linspace(p1_min, p1_max, n_p1)
     p2 = np.linspace(p2_min, p2_max, n_p2)
 
-    y_min, y_max = -6, 6
-    n_y = 100
-    y1_vals = np.linspace(y_min, y_max, n_y)
-    y2_vals = np.linspace(y_min, y_max, n_y)
-    Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
-    X1,X2,P1,P2 = np.meshgrid(x1,x2,p1,p2,indexing='ij')
-    U = 0.5*m*w*w*(X1**2+X2**2)
-
-    def Psi_src(x1,x2):
+    def Psi(x1,x2):
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-        Psi_0_1 = (np.sqrt(2 * m * w / h_bar)*(m * w / (np.pi * h_bar))**0.5)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+        Psi_0_1 = (np.sqrt(2/np.pi)* (m*w/(h_bar))**(3/4)) *x2 *(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3/5)*Psi_0_0 + np.sqrt(2/5)*Psi_0_1
         return result
+    Psi_star = lambda x1, x2: np.conj(Psi(x1, x2))
 
-    def Psi_dest(x1,x2):
-        Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
-        Psi_0_1 = (np.sqrt(2 * m * w / h_bar)*(m * w / (np.pi * h_bar))**0.5)*x2*(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
-        result=np.sqrt(3.1/5)*Psi_0_0 + np.sqrt(1.9/5)*Psi_0_1
-        return result
-    Psi_star_src = lambda x1, x2: np.conj(Psi_src(x1, x2))
-    Psi_star_dest = lambda x1, x2: np.conj(Psi_dest(x1, x2))
+    y_min, y_max = -5, 5
+    n_y = 70
+    y1_vals = np.linspace(y_min, y_max, n_y)
+    y2_vals = np.linspace(y_min, y_max, n_y)
 
-    def compute_wigner_element(i, j, k, l, Psi, Psi_star):
+    def compute_wigner_element(i, j, k, l):
+        Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
         integrand_vals = np.real(
             Psi_star(x1[i] + Y1, x2[j] + Y2) *
             Psi(x1[i] - Y1, x2[j] - Y2) *
             np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
         )
-        integral_y2 = simps(integrand_vals, y2_vals, axis=1)
-        integral = simps(integral_y2, y1_vals)
+        integral_y2 = simps(integrand_vals, x = y2_vals, axis=1)
+        integral = simps(integral_y2, x = y1_vals)
         return i, j, k, l, integral / ((np.pi * h_bar) ** 2)
 
-    def Wigner(Psi_func, Psi_func_star):
+    def Wigner(Psi_func):
         result = np.zeros((n_x1, n_x2, n_p1, n_p2))
         indices = [(i, j, k, l) for i in range(n_x1)
                                 for j in range(n_x2)
@@ -77,15 +68,21 @@ def wignerTimeEvol(q):
                                 for l in range(n_p2)]
 
         results = Parallel(n_jobs=-1, verbose=0)(
-            delayed(compute_wigner_element)(i, j, k, l, Psi_func, Psi_func_star) for (i, j, k, l) in indices
+            delayed(compute_wigner_element)(i, j, k, l) for (i, j, k, l) in indices
         )
+
         for i, j, k, l, val in results:
             result[i, j, k, l] = val
+
         return result
 
-    source = Wigner(Psi_src, Psi_star_src)
-    dest = Wigner(Psi_dest, Psi_star_dest)
-    q.put((0,source.copy(),dest.copy()))
+
+    W = Wigner(Psi)
+
+
+    X1,X2,P1,P2 = np.meshgrid(x1,x2,p1,p2,indexing='ij')  # full 2D grid versions of x and p  #Grid for X,P
+    U = 0.5*m*w*w*(X1**2+X2**2)
+
 
     def central_diff_4th_order_parallel(W_array, axis, spacing, n_jobs=-1):
         result = np.zeros_like(W_array)
@@ -109,7 +106,9 @@ def wignerTimeEvol(q):
                 (-W_array[tuple(slc1)] + 8 * W_array[tuple(slc2)]
                 - 8 * W_array[tuple(slc3)] + W_array[tuple(slc4)]) / (12 * spacing)
             )
+
         indices = range(2, shape[axis] - 2)
+
         results = Parallel(n_jobs=n_jobs)(
             delayed(compute_slice)(i) for i in indices
         )
