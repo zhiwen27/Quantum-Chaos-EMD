@@ -37,19 +37,27 @@ def wignerTimeEvol(q):
     p1 = np.linspace(p1_min, p1_max, n_p1)
     p2 = np.linspace(p2_min, p2_max, n_p2)
 
-    def Psi(x1,x2):
+    def Psi_src(x1,x2):
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
         Psi_0_1 = (np.sqrt(2/np.pi)* (m*w/(h_bar))**(3/4)) *x2 *(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3/5)*Psi_0_0 + np.sqrt(2/5)*Psi_0_1
         return result
-    Psi_star = lambda x1, x2: np.conj(Psi(x1, x2))
+    
+    def Psi_dest(x1,x2):
+        Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
+        Psi_0_1 = (np.sqrt(2/np.pi)* (m*w/(h_bar))**(3/4)) *x2 *(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
+        result=np.sqrt(3.1/5)*Psi_0_0 + np.sqrt(1.9/5)*Psi_0_1
+        return result
+
+    Psi_src_star = lambda x1, x2: np.conj(Psi_src(x1, x2))
+    Psi_dest_star = lambda x1, x2: np.conj(Psi_dest(x1, x2))
 
     y_min, y_max = -5, 5
     n_y = 70
     y1_vals = np.linspace(y_min, y_max, n_y)
     y2_vals = np.linspace(y_min, y_max, n_y)
 
-    def compute_wigner_element(i, j, k, l):
+    def compute_wigner_element(i, j, k, l,Psi,Psi_star):
         Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
         integrand_vals = np.real(
             Psi_star(x1[i] + Y1, x2[j] + Y2) *
@@ -60,7 +68,7 @@ def wignerTimeEvol(q):
         integral = simps(integral_y2, x = y1_vals)
         return i, j, k, l, integral / ((np.pi * h_bar) ** 2)
 
-    def Wigner(Psi_func):
+    def Wigner(Psi_func,Psi_func_star):
         result = np.zeros((n_x1, n_x2, n_p1, n_p2))
         indices = [(i, j, k, l) for i in range(n_x1)
                                 for j in range(n_x2)
@@ -68,7 +76,7 @@ def wignerTimeEvol(q):
                                 for l in range(n_p2)]
 
         results = Parallel(n_jobs=-1, verbose=0)(
-            delayed(compute_wigner_element)(i, j, k, l) for (i, j, k, l) in indices
+            delayed(compute_wigner_element)(i, j, k, l,Psi_func,Psi_func_star) for (i, j, k, l) in indices
         )
 
         for i, j, k, l, val in results:
@@ -76,7 +84,8 @@ def wignerTimeEvol(q):
 
         return result
 
-    W = Wigner(Psi)
+    source = Wigner(Psi_src,Psi_src_star)
+    dest = Wigner(Psi_dest,Psi_dest_star)
 
     X1,X2,P1,P2 = np.meshgrid(x1,x2,p1,p2,indexing='ij')
     U = 0.5*m*w*w*(X1**2+X2**2)
