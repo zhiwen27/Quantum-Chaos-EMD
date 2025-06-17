@@ -65,8 +65,8 @@ def compute_wigner_element(i, j, k, l):
         Psi(x1[i] - Y1, x2[j] - Y2) *
         np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
     )
-    integral_y2 = simps(integrand_vals, y2_vals, axis=1)
-    integral = simps(integral_y2, y1_vals)
+    integral_y2 = simps(integrand_vals, x = y2_vals, axis=1)
+    integral = simps(integral_y2, x = y1_vals)
     return i, j, k, l, integral / ((np.pi * h_bar) ** 2)
 
 def Wigner(Psi_func):

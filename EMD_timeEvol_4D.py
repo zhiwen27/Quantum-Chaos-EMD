@@ -16,11 +16,11 @@ def wignerTimeEvol(q):
 
     x1_min, x1_max = -6, 6
     x2_min, x2_max = -6, 6
-    n_x1, n_x2 = 50, 50
+    n_x1, n_x2 = 30, 30
 
     p1_min, p1_max = -6, 6
     p2_min, p2_max = -6, 6
-    n_p1, n_p2 = 50, 50
+    n_p1, n_p2 = 30, 30
 
     dx1 = (x1_max - x1_min) / (n_x1 - 1)
     dx2 = (x2_max - x2_min) / (n_x2 - 1)
@@ -30,7 +30,7 @@ def wignerTimeEvol(q):
     t_f = 0.1
     n_t = 100
     dt = t_f/n_t
-    t = 0.1
+    t = 0.2
 
     x1 = np.linspace(x1_min, x1_max, n_x1)
     x2 = np.linspace(x2_min, x2_max, n_x2)
@@ -85,7 +85,7 @@ def wignerTimeEvol(q):
 
     source = Wigner(Psi_src, Psi_star_src)
     dest = Wigner(Psi_dest, Psi_star_dest)
-    q.put((0,source,dest))
+    q.put((0,source.copy(),dest.copy()))
 
     def central_diff_4th_order_parallel(W_array, axis, spacing, n_jobs=-1):
         result = np.zeros_like(W_array)
@@ -145,15 +145,15 @@ def wignerTimeEvol(q):
             W[0:2, :, :, :] = W[-2:, :, :, :] = W[:, 0:2, :, :] = W[:, -2:, :, :] = W[:, :, 0:2, :] = W[:, :, -2:, :] = W[:, :, :, 0:2] = W[:, :, :, -2:] = 0
         return W
 
-    #for i in range (int(t/t_f)):
-    source = timeEvol(source)
-    dest = timeEvol(dest)
-    q.put((0.1,source,dest))
+    for i in range (int(t/t_f)):
+        source = timeEvol(source)
+        dest = timeEvol(dest)
+        q.put(((i + 1) * t_f,source.copy(),dest.copy()))
     q.put(None)
 
 def emdCal(q):
     import cupy as cp
-    N = 50
+    N = 30
     spacing = np.linspace(-10, 10, N)
     dx = spacing[1]-spacing[0]
     tau = 3
@@ -202,7 +202,7 @@ def emdCal(q):
         t, source, dest = i
         source /= source.sum()
         dest /= dest.sum()
-        computedDistance = l2_distance(source, dest, maxiter=40000, dx=dx, tau=tau, mu = mu)
+        computedDistance = l2_distance(source, dest, maxiter=100000, dx=dx, tau=tau, mu = mu)
         print("Earth Mover's Distance at t = " + f"{t:.1f}" + "s:", computedDistance)
 
 start_time = time.time()
@@ -215,3 +215,9 @@ if __name__ == "__main__":
     p2.join()
     end_time = time.time()
     print(end_time-start_time)
+
+'''
+module load cuda/12.6
+export LD_LIBRARY_PATH=$CUDA_SPACK_ROOT/lib64:$LD_LIBRARY_PATH
+source ~/myenv/bin/activate
+'''
