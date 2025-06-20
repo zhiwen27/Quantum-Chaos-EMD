@@ -23,7 +23,7 @@ t_f = 0.1
 n_t = 100
 dt = t_f/n_t
 # time
-t = 1
+t = 10
 
 dx = (x_max - x_min) / (n_x - 1)
 dp = (p_max - p_min) / (n_p - 1)
