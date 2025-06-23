@@ -10,6 +10,7 @@ MAX_DIM = 4
 q = Queue(maxsize=5)
 
 def wignerTimeEvol(q):
+    start_time = time.time()
     m=1
     w=1
     h_bar=1
@@ -157,8 +158,13 @@ def wignerTimeEvol(q):
         q.put(((i + 1) * t_f,source.copy(),dest.copy()))
     q.put(None)
 
+    end_time = time.time()
+    print(end_time-start_time)
+
+
 def emdCal(q):
     import cupy as cp
+    start_time = time.time()
     N = 50
     spacing = np.linspace(-10, 10, N)
     dx = spacing[1]-spacing[0]
@@ -210,6 +216,9 @@ def emdCal(q):
         dest /= dest.sum()
         computedDistance = l2_distance(source, dest, maxiter=100000, dx=dx, tau=tau, mu = mu)
         print("Earth Mover's Distance at t = " + f"{t:.1f}" + "s:", computedDistance)
+    end_time = time.time()
+    print(end_time-start_time)
+
 
 start_time = time.time()
 if __name__ == "__main__":

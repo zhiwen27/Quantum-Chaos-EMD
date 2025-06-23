@@ -38,7 +38,7 @@ dx2 = (x2_max - x2_min) / (n_x2 - 1)
 dp1 = (p1_max - p1_min) / (n_p1 - 1)
 dp2 = (p2_max - p2_min) / (n_p2 - 1)
 
-t_f=0.01  #final time
+t_f=0.1  #final time
 dt=0.001
 n_t=math.ceil(t_f/dt) #Round Up
 
