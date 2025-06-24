@@ -73,6 +73,9 @@ def wignerTimeEvol(q):
         result = np.zeros_like(P_array, dtype=complex)
         shape = P_array.shape
 
+        def p(i):
+            return i % shape[axis]
+
         def compute_slice(i):
             slc1 = [slice(None)] * 2
             slc2 = [slice(None)] * 2
@@ -80,17 +83,17 @@ def wignerTimeEvol(q):
             slc4 = [slice(None)] * 2
             center = [slice(None)] * 2
 
-            slc1[axis] = i - 2
-            slc2[axis] = i - 1
-            slc3[axis] = i + 1
-            slc4[axis] = i + 2
-            center[axis] = i
+            slc1[axis] = p(i - 2)
+            slc2[axis] = p(i - 1)
+            slc3[axis] = p(i + 1)
+            slc4[axis] = p(i + 2)
+            center[axis] = p(i)
 
             val = (-P_array[tuple(slc4)] + 16*P_array[tuple(slc3)] - 30*P_array[tuple(center)] +
                 16*P_array[tuple(slc2)] - P_array[tuple(slc1)]) / (12 * spacing**2)
             return (tuple(center), val)
 
-        indices = range(2, shape[axis] - 2)
+        indices = range(shape[axis])
         results = Parallel(n_jobs=n_jobs)(delayed(compute_slice)(i) for i in indices)
 
         for center_slice, val in results:
@@ -100,21 +103,26 @@ def wignerTimeEvol(q):
     
     def mixed_second_derivative_4th_order_parallel(P_array, spacing1, spacing2, n_jobs=-1):
         result = np.zeros_like(P_array, dtype=complex)
-        shape = P_array.shape
+        ptheta1, ptheta2 = P_array.shape
 
-        i_indices = range(2, shape[0] - 2)
-        j_indices = range(2, shape[1] - 2)
+        def p1(i):
+            return i % ptheta1
+        
+        def p2(i):
+            return i % ptheta2
 
         def compute(i,j):
-            val = (P_array[i - 2, j - 2] - 8 * P_array[i - 1, j - 2] + 8 * P_array[i + 1, j - 2] -
-                P_array[i + 2, j - 2] - 8 * P_array[i - 2, j - 1] + 64 * P_array[i - 1, j - 1] -
-                64 * P_array[i + 1, j - 1] + 8 * P_array[i + 2, j - 1] + 8 * P_array[i - 2, j + 1] -
-                64 * P_array[i - 1, j + 1] + 64 * P_array[i + 1, j + 1] - 8 * P_array[i + 2, j + 1] -
-                P_array[i - 2, j + 2] + 8 * P_array[i - 1, j + 2] - 8 * P_array[i + 1, j + 2] +
-                P_array[i + 2, j + 2]) / (144 * spacing1 * spacing2)
+            val = (P_array[p1(i - 2), p2(j - 2)] - 8 * P_array[p1(i - 1), p2(j - 2)] + 8 * P_array[p1(i + 1), p2(j - 2)] -
+                P_array[p1(i + 2), p2(j - 2)] - 8 * P_array[p1(i - 2), p2(j - 1)] + 64 * P_array[p1(i - 1), p2(j - 1)] -
+                64 * P_array[p1(i + 1), p2(j - 1)] + 8 * P_array[p1(i + 2), p2(j - 1)] + 8 * P_array[p1(i - 2), p2(j + 1)] -
+                64 * P_array[p1(i - 1), p2(j + 1)] + 64 * P_array[p1(i + 1), p2(j + 1)] - 8 * P_array[p1(i + 2), p2(j + 1)] -
+                P_array[p1(i - 2), p2(j + 2)] + 8 * P_array[p1(i - 1), p2(j + 2)] - 8 * P_array[p1(i + 1), p2(j + 2)] +
+                P_array[p1(i + 2), p2(j + 2)]) / (144 * spacing1 * spacing2)
             return (i, j, val)
+        
 
-        results = Parallel(n_jobs=n_jobs)(delayed(compute)(i, j) for i in i_indices for j in j_indices)
+        indices = [(i, j) for i in range(ptheta1) for j in range(ptheta2)]
+        results = Parallel(n_jobs=n_jobs)(delayed(compute)(i, j) for i,j in indices)
 
         for i, j, val in results:
             result[i,j] = val
@@ -164,7 +172,6 @@ def wignerTimeEvol(q):
             P3=P+k3*dt
             k4=f(P3)
             P=P+(dt/6)*(k1+2*k2+2*k3+k4)
-            P[:2, :] = P[-2:, :] = P[:, :2] = P[:, -2:] = 0
         return P
 
     source = Wigner(P_src)
