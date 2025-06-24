@@ -23,7 +23,7 @@ def wignerTimeEvol(q):
     p2_min, p2_max = -6, 6
     n_p1, n_p2 = 40, 40
 
-    y_min, y_max = -5, 5
+    y_min, y_max = -6, 6
     n_y = 100  # number of points for integration grid
     y1_vals = np.linspace(y_min, y_max, n_y)
     y2_vals = np.linspace(y_min, y_max, n_y)
@@ -139,8 +139,8 @@ def wignerTimeEvol(q):
     def compute_wigner_element(i, j, k, l, Psi):
         Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
         integrand_vals = np.real(
-            np.conj(Psi(np.column_stack(((theta1[i] + Y1).ravel(), (theta2[j] + Y2).ravel()))).reshape(Y1.shape)) *
-            Psi(np.column_stack(((theta1[i] - Y1).ravel(), (theta2[j] - Y2).ravel()))).reshape(Y1.shape) *
+            np.conj(Psi(np.column_stack((((theta1[i] + Y1) % (2 * np.pi)).ravel(), ((theta2[j] + Y2) % (2 * np.pi)).ravel()))).reshape(Y1.shape)) *
+            Psi(np.column_stack((((theta1[i] - Y1) % (2 * np.pi)).ravel(), ((theta2[j] - Y2) % (2 * np.pi)).ravel()))).reshape(Y1.shape) *
             np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
         )
         integral_y2 = simps(integrand_vals, y2_vals, axis=1)
@@ -153,7 +153,7 @@ def wignerTimeEvol(q):
                                 for j in range(n_theta2)
                                 for k in range(n_p1)
                                 for l in range(n_p2)]
-        Psi = RegularGridInterpolator((theta1, theta2), P_array, bounds_error=False, fill_value=0)
+        Psi = RegularGridInterpolator((theta1, theta2), P_array, bounds_error=False, fill_value=None)
         results = Parallel(n_jobs=-1, verbose=0)(
             delayed(compute_wigner_element)(i, j, k, l, Psi) for (i, j, k, l) in indices
         )
