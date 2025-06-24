@@ -6,7 +6,7 @@ from joblib import Parallel, delayed
 import os
 import multiprocessing
 import time
-start_time = time.time()
+total_start = time.time()
 
 
 print("Here I start again!")
@@ -29,7 +29,7 @@ p2_min, p2_max = -5, 5
 n_p1, n_p2 = 40, 40
 
 y_min, y_max = -5, 5
-n_y = 70  # number of points for integration grid
+n_y = 100  # number of points for integration grid
 y1_vals = np.linspace(y_min, y_max, n_y)
 y2_vals = np.linspace(y_min, y_max, n_y)
 
@@ -38,8 +38,8 @@ dx2 = (x2_max - x2_min) / (n_x2 - 1)
 dp1 = (p1_max - p1_min) / (n_p1 - 1)
 dp2 = (p2_max - p2_min) / (n_p2 - 1)
 
-t_f=0.1  #final time
-dt=0.001
+t_f=0.01  #final time
+dt=0.0001
 n_t=math.ceil(t_f/dt) #Round Up
 
 # Create coordinate grids
@@ -114,9 +114,13 @@ for step in range(n_t):
     k4=f(P3)
     P=P+(dt/6)*(k1+2*k2+2*k3+k4)
     P[:2, :] = P[-2:, :] = P[:, :2] = P[:, -2:] = 0
+rk4_end = time.time()
+rk4_time = rk4_end - rk4_start
 
 
 #Wigner Conversion
+wigner_start = time.time()
+
 def compute_wigner_element(i, j, k, l):
     Psi_star = lambda x1, x2: np.conj(Psi(x1, x2))
     Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
@@ -154,10 +158,8 @@ def Wigner(Psi_func):
 
 W, wigner_time = Wigner(Psi)
 
-
-rk4_end = time.time()
-rk4_time = rk4_end - rk4_start
-print("✅ RK4 time evolution completed in {:.2f} seconds.\n".format(rk4_time))
+wigner_end = time.time()
+wigner_time = wigner_end - wigner_start
 
 
 print("n_boxes =", n_x1, "; n_y =", n_y, "; n_t =", n_t, "; Time,t =", t_f)
@@ -301,9 +303,8 @@ print("\nW_derived value at closest (x1=%.2f,x2=%.2f,p1=%.2f,p2=%.2f):" % (x1[i7
 #np.save("W_output.npy", W)
 
 
-end_time = time.time()
-total_time = end_time - start_time
-
+total_end = time.time()
+total_time = total_end - total_start
 print("\n⏱️ Summary:")
 print(f" - RK4 time evolution time: {rk4_time:.2f} seconds ({rk4_time / 60:.2f} minutes)")
 print(f" - Wigner conversion time: {wigner_time:.2f} seconds ({wigner_time / 60:.2f} minutes)")
