@@ -6,7 +6,7 @@ from joblib import Parallel, delayed
 import os
 import multiprocessing
 import time
-start_time = time.time()
+total_start = time.time()
 
 
 print("Here I start again!")
@@ -29,7 +29,7 @@ p2_min, p2_max = -5, 5
 n_p1, n_p2 = 40, 40
 
 y_min, y_max = -5, 5
-n_y = 70  # number of points for integration grid
+n_y = 100  # number of points for integration grid
 y1_vals = np.linspace(y_min, y_max, n_y)
 y2_vals = np.linspace(y_min, y_max, n_y)
 
@@ -38,8 +38,8 @@ dx2 = (x2_max - x2_min) / (n_x2 - 1)
 dp1 = (p1_max - p1_min) / (n_p1 - 1)
 dp2 = (p2_max - p2_min) / (n_p2 - 1)
 
-t_f=0.1  #final time
-dt=0.001
+t_f=0.01  #final time
+dt=0.0001
 n_t=math.ceil(t_f/dt) #Round Up
 
 # Create coordinate grids
@@ -114,33 +114,44 @@ for step in range(n_t):
     k4=f(P3)
     P=P+(dt/6)*(k1+2*k2+2*k3+k4)
     P[:2, :] = P[-2:, :] = P[:, :2] = P[:, -2:] = 0
+rk4_end = time.time()
+rk4_time = rk4_end - rk4_start
+
 
 
 #Wigner Conversion
-def compute_wigner_element(i, j, k, l):
-    Psi_star = lambda x1, x2: np.conj(Psi(x1, x2))
-    Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
-    integrand_vals = np.real(
-        Psi_star(x1[i] + Y1, x2[j] + Y2) *
-        Psi(x1[i] - Y1, x2[j] - Y2) *
-        np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
-    )
-    integral_y2 = simps(integrand_vals, y2_vals, axis=1)
-    integral = simps(integral_y2, y1_vals)
-    return i, j, k, l, integral / ((np.pi * h_bar) ** 2)
-
-def Wigner(Psi_func):
-    print("\nStarting parallel Wigner computation...")
+def Wigner(P_grid, x1, x2, p1, p2, y1_vals, y2_vals, h_bar=1):
+    print("\n🎬 Starting parallel Wigner computation...")
     t0 = time.time()
 
+    n_x1, n_x2 = len(x1), len(x2)
+    n_p1, n_p2 = len(p1), len(p2)
+
     result = np.zeros((n_x1, n_x2, n_p1, n_p2))
+
+    def compute_element(i, j, k, l):
+        Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
+
+        # Shifted indices (simplified assumption: Psi constant around grid point)
+        psi_plus  = P_grid[i, j]  # Ideally: interpolated at (x1[i] + Y1, x2[j] + Y2)
+        psi_minus = P_grid[i, j]  # Here we avoid full interpolation for speed
+
+        integrand = np.real(
+            np.conj(psi_plus) * psi_minus *
+            np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
+        )
+
+        integral_y2 = simps(integrand, y2_vals, axis=1)
+        integral = simps(integral_y2, y1_vals)
+        return (i, j, k, l, integral / ((np.pi * h_bar) ** 2))
+
     indices = [(i, j, k, l) for i in range(n_x1)
-                            for j in range(n_x2)
-                            for k in range(n_p1)
-                            for l in range(n_p2)]
+                                for j in range(n_x2)
+                                for k in range(n_p1)
+                                for l in range(n_p2)]
 
     results = Parallel(n_jobs=-1, verbose=0)(
-        delayed(compute_wigner_element)(i, j, k, l) for (i, j, k, l) in indices
+        delayed(compute_element)(i, j, k, l) for (i, j, k, l) in indices
     )
 
     for i, j, k, l, val in results:
@@ -151,13 +162,7 @@ def Wigner(Psi_func):
     print("✅ Parallel Wigner computation completed in {:.2f} seconds.\n".format(wigner_time))
     return result, wigner_time
 
-
-W, wigner_time = Wigner(Psi)
-
-
-rk4_end = time.time()
-rk4_time = rk4_end - rk4_start
-print("✅ RK4 time evolution completed in {:.2f} seconds.\n".format(rk4_time))
+W, wigner_time = Wigner(P, x1, x2, p1, p2, y1_vals, y2_vals, h_bar=1)
 
 
 print("n_boxes =", n_x1, "; n_y =", n_y, "; n_t =", n_t, "; Time,t =", t_f)
@@ -301,9 +306,8 @@ print("\nW_derived value at closest (x1=%.2f,x2=%.2f,p1=%.2f,p2=%.2f):" % (x1[i7
 #np.save("W_output.npy", W)
 
 
-end_time = time.time()
-total_time = end_time - start_time
-
+total_end = time.time()
+total_time = total_end - total_start
 print("\n⏱️ Summary:")
 print(f" - RK4 time evolution time: {rk4_time:.2f} seconds ({rk4_time / 60:.2f} minutes)")
 print(f" - Wigner conversion time: {wigner_time:.2f} seconds ({wigner_time / 60:.2f} minutes)")
