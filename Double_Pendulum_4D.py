@@ -19,9 +19,9 @@ def wignerTimeEvol(q):
     w=1
     h_bar=1
 
-    x1_min, x1_max = -6,6
-    x2_min, x2_max = -6,6
-    n_x1, n_x2 = 40, 40
+    theta1_min, theta1_max = 0, 2 * np.pi
+    theta2_min, theta2_max = 0, 2 * np.pi
+    n_theta1, n_theta2 = 40, 40
 
     p1_min, p1_max = -6, 6
     p2_min, p2_max = -6, 6
@@ -32,20 +32,22 @@ def wignerTimeEvol(q):
     y1_vals = np.linspace(y_min, y_max, n_y)
     y2_vals = np.linspace(y_min, y_max, n_y)
 
-    dx1 = (x1_max - x1_min) / (n_x1 - 1)
-    dx2 = (x2_max - x2_min) / (n_x2 - 1)
-    dp1 = (p1_max - p1_min) / (n_p1 - 1)
-    dp2 = (p2_max - p2_min) / (n_p2 - 1)
+    dx1 = (theta1_max - theta1_min) / (n_theta1 - 1)
+    dx2 = (theta2_max - theta2_min) / (n_theta2 - 1)
+    #dp1 = (p1_max - p1_min) / (n_p1 - 1)
+    #dp2 = (p2_max - p2_min) / (n_p2 - 1)
 
     n_t= 100
     dt = t_f / n_t
 
-    x1 = np.linspace(x1_min, x1_max, n_x1)
-    x2 = np.linspace(x2_min, x2_max, n_x2)
+    x1 = np.linspace(theta1_min, theta1_max, n_theta1)
+    x2 = np.linspace(theta2_min, theta2_max, n_theta2)
     p1 = np.linspace(p1_min, p1_max, n_p1)
     p2 = np.linspace(p2_min, p2_max, n_p2)
 
+    
     def Psi_src(x1,x2):
+        # Initial condition: Gaussians centered at origin
         Psi_0_0 = ((m * w / (np.pi * h_bar))**0.5)*(np.exp(-m * w*(x1**2+x2**2)/ (2 * h_bar)))
         Psi_0_1 = (np.sqrt(2/np.pi)* (m*w/(h_bar))**(3/4)) *x2 *(np.exp(-m * w * (x1**2 + x2**2) / (2 * h_bar)))
         result=np.sqrt(3/5)*Psi_0_0 + np.sqrt(2/5)*Psi_0_1
@@ -111,9 +113,9 @@ def wignerTimeEvol(q):
         return i, j, k, l, integral / ((np.pi * h_bar) ** 2)
 
     def Wigner(P_array):
-        result = np.zeros((n_x1, n_x2, n_p1, n_p2))
-        indices = [(i, j, k, l) for i in range(n_x1)
-                                for j in range(n_x2)
+        result = np.zeros((n_theta1, n_theta2, n_p1, n_p2))
+        indices = [(i, j, k, l) for i in range(n_theta1)
+                                for j in range(n_theta2)
                                 for k in range(n_p1)
                                 for l in range(n_p2)]
         Psi = RegularGridInterpolator((x1, x2), P_array, bounds_error=False, fill_value=0)
