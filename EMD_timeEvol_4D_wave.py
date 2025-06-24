@@ -101,10 +101,9 @@ def wignerTimeEvol(q):
         return (1j * h_bar / (2 * m)) * laplacian - (1j / h_bar) * U * P_array
 
     def compute_wigner_element(i, j, k, l, Psi):
-        Psi_star = lambda x1, x2: np.conj(Psi(x1, x2))
         Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
         integrand_vals = np.real(
-            Psi_star(np.column_stack(((x1[i] + Y1).ravel(), (x2[j] + Y2).ravel()))).reshape(Y1.shape) *
+            np.conj(Psi(np.column_stack(((x1[i] + Y1).ravel(), (x2[j] + Y2).ravel()))).reshape(Y1.shape)) *
             Psi(np.column_stack(((x1[i] - Y1).ravel(), (x2[j] - Y2).ravel()))).reshape(Y1.shape) *
             np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
         )
