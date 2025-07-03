@@ -13,7 +13,7 @@ q = Queue(maxsize=1)
 def wignerTimeEvol(q):
     start_time = time.time()
     t = 1
-    t_f = 0.1
+    t_f = 0.01
 
     theta1_min, theta1_max = 0, 2 * np.pi
     theta2_min, theta2_max = 0, 2 * np.pi
@@ -41,12 +41,11 @@ def wignerTimeEvol(q):
     p1 = np.linspace(p1_min, p1_max, n_p1)
     p2 = np.linspace(p2_min, p2_max, n_p2)
 
-    
     def Psi_src(theta1,theta2):
-        return np.exp(- (theta1**2) - (theta2**2))
+        return np.exp(- ((theta1 - np.pi)**2 /(2 * (0.2)**2)) - ((theta2 - np.pi)**2 / (2*(0.2)**2)))
     
     def Psi_dest(theta1,theta2):
-        return np.exp(- ((theta1 - 0.1) **2) - ((theta2 - 0.1 ) **2))
+        return np.exp(- ((theta1 - (np.pi + 0.1)) **2 / (2*(0.2)**2)) - ((theta2 - (np.pi + 0.1)) **2 / (2*(0.2)**2)))
     
     theta1_grid, theta2_grid = np.meshgrid(theta1, theta2, indexing='ij')
     m1 = 1
@@ -58,10 +57,10 @@ def wignerTimeEvol(q):
     c = m2 * l2 ** 2
     a = (m1 + m2) * l1 ** 2 + c
     b = m2 * l1 * l2
-    d = (- h_bar ** 2 / 2) * (1 / (a * c - c ** 2 - b ** 2 * np.cos(theta2_grid)))
-    big_a = c * d
-    big_b = a * d + 2 * b * d * np.cos(theta2_grid)
-    big_c = 2 * c * d + 2 * b * d * np.cos(theta2_grid)
+    d = (- h_bar ** 2 / 2) * (1 / ((a * c - c ** 2 - (b * np.cos(theta2_grid)) ** 2) + 1e-8))
+    big_a = np.clip(c * d, -1e6, 1e6)
+    big_b = np.clip(a * d + 2 * b * d * np.cos(theta2_grid), -1e6, 1e6)
+    big_c = np.clip(2 * c * d + 2 * b * d * np.cos(theta2_grid), -1e6, 1e6)
     U = -m1*g*np.cos(theta1_grid)-m2*g*(l1*np.cos(theta1_grid)+l2*np.cos(theta2_grid))
     
     P_source = Psi_src(theta1_grid, theta2_grid)
@@ -134,7 +133,7 @@ def wignerTimeEvol(q):
         d2P_dtheta2 = second_derivative_4th_order_parallel(P_array, axis=1, spacing=dtheta2)
         d2P_dtheta1_dtheta2 = mixed_second_derivative_4th_order_parallel(P_array, spacing1=dtheta1 ,spacing2=dtheta2)
         laplacian = big_a * d2P_dtheta1 + big_b * d2P_dtheta2 - big_c * d2P_dtheta1_dtheta2
-        return (-1j / h_bar) * (laplacian + U) * P_array
+        return (-1j / h_bar) * np.clip(laplacian + U, -1e6, 1e6) * P_array
 
     def compute_wigner_element(i, j, k, l, Psi):
         Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
@@ -172,6 +171,7 @@ def wignerTimeEvol(q):
             P3=P+k3*dt
             k4=f(P3)
             P=P+(dt/6)*(k1+2*k2+2*k3+k4)
+            P = np.clip(P, -1e6, 1e6)
         return P
 
     source = Wigner(P_src)
