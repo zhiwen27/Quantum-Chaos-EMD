@@ -97,7 +97,7 @@ def f(P_array):
     d2P_dx1 = second_derivative_4th_order_parallel(P_array, axis=0, spacing=dx1)
     d2P_dx2 = second_derivative_4th_order_parallel(P_array, axis=1, spacing=dx2)
     laplacian = d2P_dx1 + d2P_dx2
-    return (-1j * h_bar / (2 * m)) * laplacian + (U * P_array /(1j* h_bar))
+    return (1j * h_bar / (2 * m)) * laplacian + (U * P_array /(1j* h_bar))
 
 
 
