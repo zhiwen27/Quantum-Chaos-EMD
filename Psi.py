@@ -23,11 +23,11 @@ h_bar=1
 # Spatial and momentum grid parameters
 x1_min, x1_max = -5,5
 x2_min, x2_max = -5,5
-n_x1, n_x2 = 40, 40
+n_x1, n_x2 = 100, 100
 
 p1_min, p1_max = -5, 5
 p2_min, p2_max = -5, 5
-n_p1, n_p2 = 40, 40
+n_p1, n_p2 = 100, 100
 
 y_min, y_max = -5, 5
 n_y = 100  # number of points for integration grid
