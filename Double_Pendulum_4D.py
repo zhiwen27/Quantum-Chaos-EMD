@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from multiprocessing import Process, Queue
 import pandas as pd
@@ -5,75 +6,81 @@ from scipy.integrate import simpson as simps
 from joblib import Parallel, delayed
 from scipy.interpolate import RegularGridInterpolator
 import time
+from scipy.interpolate import RectBivariateSpline
 np.set_printoptions(threshold=np.inf)
 
 MAX_DIM = 4
 q = Queue(maxsize=1)
 
 def wignerTimeEvol(q):
-    start_time = time.time()
-    t = 1
-    t_f = 0.01
+    m1=1000
+    m2=1
+    g=10
+    l1=1
+    l2=10
+    I1=m1*l1**2
+    I2=m2*l2**2
+    w1=np.sqrt(g/l1)
+    w2=np.sqrt(g/l2)
+    h_bar=1
+    u1=0
+    u2=0
+    f1=0.0001
+    f2=0.1
 
-    theta1_min, theta1_max = 0, 2 * np.pi
-    theta2_min, theta2_max = 0, 2 * np.pi
-    n_theta1, n_theta2 = 40, 40
+    a = (m1+m2)*l1 + m2*l2**2
+    b = m2*l1*l2
+    c = m2*l2
 
-    p1_min, p1_max = -6, 6
-    p2_min, p2_max = -6, 6
-    n_p1, n_p2 = 40, 40
+    # Spatial and momentum grid parameters
+    o1_min, o1_max = -0.08,0.08
+    o2_min, o2_max = -0.8,0.8
+    n_o1, n_o2 = 161, 161
 
-    y_min, y_max = -6, 6
-    n_y = 100  # number of points for integration grid
-    y1_vals = np.linspace(y_min, y_max, n_y)
-    y2_vals = np.linspace(y_min, y_max, n_y)
+    n1 = np.arange(-60, 61)
+    n2 = np.arange(-6, 7)
 
-    dtheta1 = (theta1_max - theta1_min) / (n_theta1 - 1)
-    dtheta2 = (theta2_max - theta2_min) / (n_theta2 - 1)
-    #dp1 = (p1_max - p1_min) / (n_p1 - 1)
-    #dp2 = (p2_max - p2_min) / (n_p2 - 1)
+    n_y = 200  # number of points in y grid for integration
+    y1_vals = np.linspace(-np.pi/2, np.pi/2, n_y)
+    y2_vals = np.linspace(-np.pi/2, np.pi/2, n_y)
 
-    n_t= 100
-    dt = t_f / n_t
+    dO1 = (o1_max - o1_min) / (n_o1 - 1)
+    dO2 = (o2_max - o2_min) / (n_o2 - 1)
 
-    theta1 = np.linspace(theta1_min, theta1_max, n_theta1)
-    theta2 = np.linspace(theta2_min, theta2_max, n_theta2)
-    p1 = np.linspace(p1_min, p1_max, n_p1)
-    p2 = np.linspace(p2_min, p2_max, n_p2)
 
-    def Psi_src(theta1,theta2):
-        return np.exp(- ((theta1 - np.pi)**2 /(2 * (0.2)**2)) - ((theta2 - np.pi)**2 / (2*(0.2)**2)))
+    t_f=0  #final time
+    dt=0.0001
+    n_t=math.ceil(t_f/dt) #Round Up
+
+    # Create coordinate grids
+    o1 = np.linspace(o1_min, o1_max, n_o1)
+    o2 = np.linspace(o2_min, o2_max, n_o2)
+
+    D = (-h_bar**2/ 2)*(1/((a*c)-(c**2)-(b**2)*(np.cos(o2)**2)))
+    A = c*D
+    B = a*D + 2*b*D*np.cos(o2)
+    C = 2*c*D + 2*b*D*np.cos(o2)
+
+
+    def Psi_src(O1,O2,f1,f2,u1,u2):
+        G = (1/(np.sqrt(2*np.pi))*f1*f2) * np.exp(-((O1-u1)**2/2*f1**2)-((O2-u2)**2/2*f2**2))
+        return G
+
+    P_src = Psi_src(O1,O2,f1,f2,u1,u2).astype(complex)
+    f1=0.00012
+    f2=0.12
+
+    def Psi_dest(O1,O2,f1,f2,u1,u2):
+        G = (1/(np.sqrt(2*np.pi))*f1*f2) * np.exp(-((O1-u1)**2/2*f1**2)-((O2-u2)**2/2*f2**2))
+        return G
     
-    def Psi_dest(theta1,theta2):
-        return np.exp(- ((theta1 - (np.pi + 0.1)) **2 / (2*(0.2)**2)) - ((theta2 - (np.pi + 0.1)) **2 / (2*(0.2)**2)))
-    
-    theta1_grid, theta2_grid = np.meshgrid(theta1, theta2, indexing='ij')
-    m1 = 1
-    m2 = 1
-    l1 = 1
-    l2 = 1
-    g = 1
-    h_bar = 1
-    c = m2 * l2 ** 2
-    a = (m1 + m2) * l1 ** 2 + c
-    b = m2 * l1 * l2
-    d = (- h_bar ** 2 / 2) * (1 / ((a * c - c ** 2 - (b * np.cos(theta2_grid)) ** 2) + 1e-8))
-    big_a = np.clip(c * d, -1e6, 1e6)
-    big_b = np.clip(a * d + 2 * b * d * np.cos(theta2_grid), -1e6, 1e6)
-    big_c = np.clip(2 * c * d + 2 * b * d * np.cos(theta2_grid), -1e6, 1e6)
-    U = -m1*g*np.cos(theta1_grid)-m2*g*(l1*np.cos(theta1_grid)+l2*np.cos(theta2_grid))
-    
-    P_source = Psi_src(theta1_grid, theta2_grid)
-    P_src = P_source / np.sqrt(np.sum(np.abs(P_source) ** 2) * dtheta1 * dtheta2)
-    P_destination = Psi_dest(theta1_grid, theta2_grid)
-    P_dest = P_destination / np.sqrt(np.sum(np.abs(P_destination) ** 2) * dtheta1 * dtheta2)
+    O1, O2 = np.meshgrid(o1, o2, indexing='ij')  # full 2D grid versions of x and p  #Grid for X,P
+    P_dest = Psi_dest(O1,O2,f1,f2,u1,u2).astype(complex)
+    U = -m1*g*l1*np.cos(O1) - m2*g*(l1*np.cos(O1) + l2*np.cos(O2))
 
     def second_derivative_4th_order_parallel(P_array, axis, spacing, n_jobs=-1):
         result = np.zeros_like(P_array, dtype=complex)
         shape = P_array.shape
-
-        def p(i):
-            return i % shape[axis]
 
         def compute_slice(i):
             slc1 = [slice(None)] * 2
@@ -82,113 +89,107 @@ def wignerTimeEvol(q):
             slc4 = [slice(None)] * 2
             center = [slice(None)] * 2
 
-            slc1[axis] = p(i - 2)
-            slc2[axis] = p(i - 1)
-            slc3[axis] = p(i + 1)
-            slc4[axis] = p(i + 2)
-            center[axis] = p(i)
+            slc1[axis] = i - 2
+            slc2[axis] = i - 1
+            slc3[axis] = i + 1
+            slc4[axis] = i + 2
+            center[axis] = i
 
             val = (-P_array[tuple(slc4)] + 16*P_array[tuple(slc3)] - 30*P_array[tuple(center)] +
                 16*P_array[tuple(slc2)] - P_array[tuple(slc1)]) / (12 * spacing**2)
             return (tuple(center), val)
 
-        indices = range(shape[axis])
+        indices = range(2, shape[axis] - 2)
         results = Parallel(n_jobs=n_jobs)(delayed(compute_slice)(i) for i in indices)
 
         for center_slice, val in results:
             result[center_slice] = val
 
         return result
-    
-    def mixed_second_derivative_4th_order_parallel(P_array, spacing1, spacing2, n_jobs=-1):
+
+
+    def mixed_second_derivative_4th_order_parallel(P_array, dx1, dx2, n_jobs=-1):
         result = np.zeros_like(P_array, dtype=complex)
-        ptheta1, ptheta2 = P_array.shape
+        shape = P_array.shape
 
-        def p1(i):
-            return i % ptheta1
-        
-        def p2(i):
-            return i % ptheta2
+        def compute_point(i, j):
+            val = (
+                +   P_array[i-2,j-2] - 8*P_array[i-2,j-1] + 8*P_array[i-2,j+1] -   P_array[i-2,j+2]
+                - 8*P_array[i-1,j-2] +64*P_array[i-1,j-1] -64*P_array[i-1,j+1] + 8*P_array[i-1,j+2]
+                + 8*P_array[i+1,j-2] -64*P_array[i+1,j-1] +64*P_array[i+1,j+1] - 8*P_array[i+1,j+2]
+                -   P_array[i+2,j-2] + 8*P_array[i+2,j-1] - 8*P_array[i+2,j+1] +   P_array[i+2,j+2]
+            )
+            return (i, j, val / (144 * dx1 * dx2))
 
-        def compute(i,j):
-            val = (P_array[p1(i - 2), p2(j - 2)] - 8 * P_array[p1(i - 1), p2(j - 2)] + 8 * P_array[p1(i + 1), p2(j - 2)] -
-                P_array[p1(i + 2), p2(j - 2)] - 8 * P_array[p1(i - 2), p2(j - 1)] + 64 * P_array[p1(i - 1), p2(j - 1)] -
-                64 * P_array[p1(i + 1), p2(j - 1)] + 8 * P_array[p1(i + 2), p2(j - 1)] + 8 * P_array[p1(i - 2), p2(j + 1)] -
-                64 * P_array[p1(i - 1), p2(j + 1)] + 64 * P_array[p1(i + 1), p2(j + 1)] - 8 * P_array[p1(i + 2), p2(j + 1)] -
-                P_array[p1(i - 2), p2(j + 2)] + 8 * P_array[p1(i - 1), p2(j + 2)] - 8 * P_array[p1(i + 1), p2(j + 2)] +
-                P_array[p1(i + 2), p2(j + 2)]) / (144 * spacing1 * spacing2)
-            return (i, j, val)
-        
+        # Only compute for valid interior points
+        indices = [(i, j) for i in range(2, shape[0] - 2) for j in range(2, shape[1] - 2)]
 
-        indices = [(i, j) for i in range(ptheta1) for j in range(ptheta2)]
-        results = Parallel(n_jobs=n_jobs)(delayed(compute)(i, j) for i,j in indices)
+        results = Parallel(n_jobs=n_jobs)(delayed(compute_point)(i, j) for i, j in indices)
 
         for i, j, val in results:
-            result[i,j] = val
+            result[i, j] = val
 
         return result
 
     def f(P_array):
-        d2P_dtheta1 = second_derivative_4th_order_parallel(P_array, axis=0, spacing=dtheta1)
-        d2P_dtheta2 = second_derivative_4th_order_parallel(P_array, axis=1, spacing=dtheta2)
-        d2P_dtheta1_dtheta2 = mixed_second_derivative_4th_order_parallel(P_array, spacing1=dtheta1 ,spacing2=dtheta2)
-        laplacian = big_a * d2P_dtheta1 + big_b * d2P_dtheta2 - big_c * d2P_dtheta1_dtheta2
-        return (-1j / h_bar) * np.clip(laplacian + U, -1e6, 1e6) * P_array
+        d2P_dO1 = second_derivative_4th_order_parallel(P_array, axis=0, spacing=dO1)
+        d2P_dO2 = second_derivative_4th_order_parallel(P_array, axis=1, spacing=dO2)
+        d2P_dO1_dO2 = mixed_second_derivative_4th_order_parallel(P_array, dO1, dO2)
 
-    def compute_wigner_element(i, j, k, l, Psi):
-        Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
-        integrand_vals = np.real(
-            np.conj(Psi(np.column_stack((((theta1[i] + Y1) % (2 * np.pi)).ravel(), ((theta2[j] + Y2) % (2 * np.pi)).ravel()))).reshape(Y1.shape)) *
-            Psi(np.column_stack((((theta1[i] - Y1) % (2 * np.pi)).ravel(), ((theta2[j] - Y2) % (2 * np.pi)).ravel()))).reshape(Y1.shape) *
-            np.exp(2j * (p1[k] * Y1 + p2[l] * Y2) / h_bar)
-        )
-        integral_y2 = simps(integrand_vals, y2_vals, axis=1)
-        integral = simps(integral_y2, y1_vals)
-        return i, j, k, l, integral / ((np.pi * h_bar) ** 2)
+        H = A*d2P_dO1 + B*d2P_dO2 - C*d2P_dO1_dO2 + U
+        return (H*P_array/(1j*h_bar))
 
-    def Wigner(P_array):
-        result = np.zeros((n_theta1, n_theta2, n_p1, n_p2))
-        indices = [(i, j, k, l) for i in range(n_theta1)
-                                for j in range(n_theta2)
-                                for k in range(n_p1)
-                                for l in range(n_p2)]
-        Psi = RegularGridInterpolator((theta1, theta2), P_array, bounds_error=False, fill_value=None)
+    for step in range(n_t):
+
+        k1=f(P)
+        P1=P+k1*dt/2
+        k2=f(P1)
+        P2=P+k2*dt/2
+        k3=f(P2)
+        P3=P+k3*dt
+        k4=f(P3)
+        P=P+(dt/6)*(k1+2*k2+2*k3+k4)
+        P[:2, :] = P[-2:, :] = P[:, :2] = P[:, -2:] = 0
+
+    def Wigner(P, o1, o2, n1, n2, y1_vals, y2_vals, h_bar=1):
+        t0 = time.time()
+        result = np.zeros((len(o1), len(o2), len(n1), len(n2)), dtype=complex)
+
+        interp = RectBivariateSpline(o1, o2, P)
+
+        def compute_element(i, j, k, l):
+            o1_val = o1[i]
+            o2_val = o2[j]
+            n1_val = n1[k]
+            n2_val = n2[l]
+
+            Y1, Y2 = np.meshgrid(y1_vals, y2_vals, indexing='ij')
+
+            psi_plus = interp(o1_val + Y1, o2_val + Y2, grid=False)
+            psi_minus = interp(o1_val - Y1, o2_val - Y2, grid=False)
+            integrand = np.conj(psi_plus) * psi_minus * np.exp(2j*(n1_val*Y1 + n2_val*Y2))
+
+            integral_y2 = simps(integrand, y2_vals, axis=1)
+            integral = simps(integral_y2, y1_vals)
+
+            norm = 1 / (np.pi * h_bar)**2
+            return (i, j, k, l, norm * integral)
+
+        indices = [(i,j,k,l) for i in range(len(o1))
+                            for j in range(len(o2))
+                            for k in range(len(n1))
+                            for l in range(len(n2))]
+
         results = Parallel(n_jobs=-1, verbose=0)(
-            delayed(compute_wigner_element)(i, j, k, l, Psi) for (i, j, k, l) in indices
+            delayed(compute_element)(*idx) for idx in indices
         )
+
         for i, j, k, l, val in results:
             result[i, j, k, l] = val
 
-        return result
-    
-    def timeEvol(P):
-        for step in range(n_t):
-            k1=f(P)
-            P1=P+k1*dt/2
-            k2=f(P1)
-            P2=P+k2*dt/2
-            k3=f(P2)
-            P3=P+k3*dt
-            k4=f(P3)
-            P=P+(dt/6)*(k1+2*k2+2*k3+k4)
-            P = np.clip(P, -1e6, 1e6)
-        return P
-
-    source = Wigner(P_src)
-    dest = Wigner(P_dest)
-    q.put((0,source.copy(),dest.copy()))
-
-    for i in range (int(t/t_f)):
-        P_src = timeEvol(P_src)
-        P_dest = timeEvol(P_dest)
-        source = Wigner(P_src)
-        dest = Wigner(P_dest)
-        q.put(((i + 1) * t_f,source.copy(),dest.copy()))
-    q.put(None)
-
-    end_time = time.time()
-    print(end_time-start_time)
-
+        return result.real
+    Psi_src = Wigner(P_src, o1, o2, n1, n2, y1_vals, y2_vals, h_bar=1)
+    Psi_dest = Wigner(P_dest, o1, o2, n1, n2, y1_vals, y2_vals, h_bar=1)
 
 def emdCal(q):
     import cupy as cp
